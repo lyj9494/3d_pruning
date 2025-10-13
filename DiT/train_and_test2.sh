@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=0 python train_mask.py --model DiT-XL/2 --image-size 256 --l1 1.5e-7 --lr 0.01 --num-sampling-steps 100
+CUDA_VISIBLE_DEVICES=2,3,4,5 torchrun --nnodes=1 --nproc_per_node=4 --master_port 12343 sample_ddp.py --model DiT-XL/2 --num-sampling-steps 100 --ddim-sample --accelerate-method dynamiclayer --path results/009-DiT-XL-2/checkpoints/0050000.pt --thres 0.1 --sample-dir 256_100_009_samples

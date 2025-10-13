@@ -1,0 +1,139 @@
+* 4gpu
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1563/1563 [7:13:57<00:00, 16.66s/it]
+saving to 50_our_samples/router-002-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-512-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 202.8152313232422
+FID: 3.640285372404378
+sFID: 5.060405563034465
+Precision: 0.83184
+Recall: 0.545
+
+2gpu
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 3125/3125 [20:03:52<00:00, 23.11s/it]
+saving to 50_ddim_samples/DiT-XL-2-DiT-XL-2-512x512-size-512-vae-ema-psampler-False-ddim-True-steps-50-accelerate-None-cfg-1.5-seed-0.npz
+Inception Score: 203.51864624023438
+FID: 3.329013153337371
+sFID: 4.530386795542881
+Precision: 0.83422
+Recall: 0.545
+
+6gpu
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1042/1042 [4:29:36<00:00, 15.52s/it]
+saving to 512_50_004_samples/router-004-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-512-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 201.59896850585938
+FID: 3.7776573440719403
+sFID: 5.258429088785647
+Precision: 0.82676
+Recall: 0.547
+
+4gpu finetune
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1563/1563 [5:51:35<00:00, 13.50s/it]
+saving to 512_50_002_samples/router-ori-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-512-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 197.6810302734375
+FID: 3.949576583574526
+sFID: 5.018572886987727
+Precision: 0.8318
+Recall: 0.548
+
+4gpu finetune
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1563/1563 [6:10:46<00:00, 14.23s/it]
+saving to 512_50_002_samples/router-ori-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-512-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 198.56103515625
+FID: 3.8940584755796976
+sFID: 5.11845475836958
+Precision: 0.82924
+Recall: 0.544
+
+* 6gpu no finetune  2e-7
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████| 261/261 [53:58<00:00, 12.41s/it]
+saving to 256_50_005_samples/router-005-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 238.3933563232422
+FID: 2.58011854827555
+sFID: 4.752015519904035
+Precision: 0.8159
+Recall: 0.585
+
+* 6gpu no finetune 2e-7
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1042/1042 [1:33:42<00:00,  5.40s/it]
+saving to 100_256_006_samples/router-006-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-100-cfg-1.5-seed-0.npz
+Inception Score: 240.1881103515625
+FID: 2.2898003688787867
+sFID: 4.4541370445488155
+Precision: 0.79998
+Recall: 0.6004
+
+6gpu no finetune 1e-7
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1042/1042 [1:04:34<00:00,  3.72s/it]
+saving to 256_50_007_samples/router-007-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 246.18930053710938
+FID: 2.3734485655998583
+sFID: 4.2782868626902655
+Precision: 0.81636
+Recall: 0.5762
+finetune
+
+
+2gpu no finetune 1.5e-7 scale
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 3125/3125 [2:51:31<00:00,  3.29s/it]
+saving to 256_50_010_samples/router-010-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 228.33291625976562
+FID: 2.780012136697792
+sFID: 4.638169828662626
+Precision: 0.79578
+Recall: 0.5957
+
+
+4gpu no finetune 1.5e-7 scale
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1563/1563 [5:21:57<00:00, 12.36s/it]
+saving to 256_100_009_samples/router-009-DiT-XL-2-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-100-cfg-1.5-seed-0.npz
+Inception Score: 239.98550415039062
+FID: 2.286416942302594
+sFID: 4.526415430902944
+Precision: 0.79706
+Recall: 0.5972
+
+6gpu l2c
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1042/1042 [1:02:13<00:00,  3.58s/it]
+saving to router_samples/router-DDIM50_router-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 245.66165161132812
+FID: 2.2603024787408685
+sFID: 4.244420898552903
+Precision: 0.81276
+Recall: 0.5907
+
+
+6gpu 100 ddim
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████| 1042/1042 [2:31:51<00:00,  8.74s/it]
+saving to 100_ddim_samples/DiT-XL-2-DiT-XL-2-256x256-size-256-vae-ema-psampler-False-ddim-True-steps-100-accelerate-None-cfg-1.5-seed-0.npz
+Inception Score: 242.76937866210938
+FID: 2.161669164157786
+sFID: 4.44539251462993
+Precision: 0.8035
+Recall: 0.6034
+
+l2c 2gpu 256 100
+Total Activate Layer: 993/2800
+Total Activate Attention: 457/1400
+Total Activate MLP: 536/1400
+Total number of images that will be sampled: 50048
+100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████| 782/782 [5:26:56<00:00, 25.09s/it]
+saving to l2c_256_100_samples/router-data1-thres-0.1-accelerate-dynamiclayer-size-256-vae-ema-ddim-True-steps-100-cfg-1.5-seed-0.npz
+Inception Score: 240.67178344726562
+FID: 2.2928134558160878
+sFID: 4.522149158926823
+Precision: 0.80296
+Recall: 0.6004
+
+
+l2c 2gpu 512 50
+Total Activate Layer: 307/1400
+Total Activate Attention: 148/700
+Total Activate MLP: 159/700
+Total number of images that will be sampled: 50000
+100%|████████████████████████████████████████████████████████████████████████████████████████████████████████| 3125/3125 [13:00:20<00:00, 14.98s/it]
+[E ProcessGroupNCCL.cpp:821] [Rank 1] Watchdog caught collective operation timeout: WorkNCCL(SeqNum=6253, OpType=ALLREDUCE, Timeout(ms)=1800000) ran for 1801956 milliseconds before timing out.
+saving to l2c_512_50_samples/router-data1-thres-0.9-accelerate-dynamiclayer-size-512-vae-ema-ddim-True-steps-50-cfg-1.5-seed-0.npz
+Inception Score: 200.70986938476562
+FID: 3.760284967889106
+sFID: 5.098499339834348
+Precision: 0.83156
+Recall: 0.543
