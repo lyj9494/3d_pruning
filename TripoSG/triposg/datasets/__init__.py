@@ -6,6 +6,7 @@ from TripoSG.triposg.utils.typing_utils import *
 import torch
 
 from .objaverse import ObjaverseDataset, BatchedObjaverseDataset
+from .objaverse_mask import ObjaverseMaskDataset, BatchedObjaverseMaskDataset
 
 # Copied from https://github.com/huggingface/pytorch-image-models/blob/main/timm/data/loader.py
 class MultiEpochsDataLoader(torch.utils.data.DataLoader):

@@ -1,7 +1,7 @@
 model:
   pretrained_model_name_or_path: '/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG'
   vae:
-    num_tokens: 512
+    num_tokens: 2048
   transformer:
     enable_local_cross_attn: true
     global_attn_block_ids: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
