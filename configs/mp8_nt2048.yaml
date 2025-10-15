@@ -20,6 +20,9 @@ dataset:
   object_ratio: 0.3
   rotating_ratio: 0.2
   ratating_degree: 10
+  train_data_dir: '/workspace/luoyajing/datasets/objaverse_4_views_ele30'
+  eval_data_dir: '/workspace/luoyajing/3d_pruning/demo_dataset'
+
 
 optimizer:
   name: "adamw"

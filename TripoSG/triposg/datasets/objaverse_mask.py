@@ -10,6 +10,7 @@ from torchvision import transforms
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from TripoSG.triposg.utils.data_utils import load_surface
 
 class ObjaverseMaskDataset(torch.utils.data.Dataset):
     def __init__(
@@ -29,20 +30,38 @@ class ObjaverseMaskDataset(torch.utils.data.Dataset):
             transforms.RandomRotation(degrees=(-self.rotating_degree, self.rotating_degree), fill=(255, 255, 255)),
         ])
 
-        self.data_dir = '/workspace/luoyajing/datasets/objaverse_4_views_ele30'
+        self.train_data_dir = configs['dataset']['train_data_dir']
+        self.eval_data_dir = configs['dataset']['eval_data_dir']
         
-        uids = [d for d in os.listdir(self.data_dir) if os.path.isdir(os.path.join(self.data_dir, d))]
+        train_uids = sorted([d for d in os.listdir(self.train_data_dir) if os.path.isdir(os.path.join(self.train_data_dir, d))])
         
-        self.image_paths = []
-        for uid in uids:
-            image_path = os.path.join(self.data_dir, uid, 'rgb_001.png')
-            if os.path.exists(image_path):
-                self.image_paths.append(image_path)
+        eval_uids = []
+        if os.path.exists(self.eval_data_dir):
+            eval_uids = sorted([d for d in os.listdir(self.eval_data_dir) if os.path.isdir(os.path.join(self.eval_data_dir, d))])
         
         if self.training:
-            self.image_paths = self.image_paths[:int(len(self.image_paths) * self.training_ratio)]
+            eval_uids_set = set(eval_uids)
+            uids = [uid for uid in train_uids if uid not in eval_uids_set]
         else:
-            self.image_paths = self.image_paths[int(len(self.image_paths) * self.training_ratio):]
+            uids = eval_uids
+            
+        self.image_paths = []
+        if self.training:
+            for uid in uids:
+                image_path = os.path.join(self.train_data_dir, uid, 'rgb_001.png')
+                if os.path.exists(image_path):
+                    self.image_paths.append(image_path)
+        else:
+            for uid in uids:
+                image_path = os.path.join(self.eval_data_dir, uid, 'rendering_rmbg.png')
+                if os.path.exists(image_path):
+                    self.image_paths.append(image_path)
+                
+        # TODO: a debug here
+        if self.training:
+            self.image_paths = self.image_paths[:100]
+        else:
+            self.image_paths = self.image_paths[:1]
         
         self.image_size = (512, 512)
 
@@ -57,9 +76,20 @@ class ObjaverseMaskDataset(torch.utils.data.Dataset):
         image = np.array(image)
         image = torch.from_numpy(image).to(torch.uint8) # [H, W, 3]
         
-        return {
-            "images": image.unsqueeze(0), # [1, H, W, 3]
-        }
+        if self.training:
+            return {
+                "images": image.unsqueeze(0), # [1, H, W, 3]
+            }
+        else:
+            # surface_path
+            surface_path = image_path.replace('rendering_rmbg.png', 'points.npy')
+            surface_data = np.load(surface_path, allow_pickle=True).item()
+            surface = load_surface(surface_data['object']) # [P, 6]
+        
+            return {
+                "images": image.unsqueeze(0), # [1, H, W, 3]
+                "surfaces": surface.unsqueeze(0), # [1, P, 6]
+            }
         
 class BatchedObjaverseMaskDataset(ObjaverseMaskDataset):
     def __init__(
@@ -88,7 +118,15 @@ class BatchedObjaverseMaskDataset(ObjaverseMaskDataset):
     def collate_fn(self, batch):
         images = torch.cat([data['images'] for data in batch], dim=0) # [B, H, W, 3]
         assert images.shape[0] == self.batch_size
-        batch = {
-            "images": images,
-        }
+        if self.training:
+            batch = {
+                "images": images,
+            }
+        else:
+            surfaces = torch.cat([data['surfaces'] for data in batch], dim=0) # [B, P, 6]
+            assert images.shape[0] == surfaces.shape[0] == self.batch_size
+            batch = {
+                "images": images,
+                "surfaces": surfaces,
+            }
         return batch

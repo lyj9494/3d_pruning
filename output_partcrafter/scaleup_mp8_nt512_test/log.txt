@@ -228,3 +228,1655 @@ Mixed precision type: fp16
 
 2025/10/14 21:28:02 - Start training into output_partcrafter/scaleup_mp8_nt512_test
 
+2025/10/14 21:41:38 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/14 21:41:38 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 21:41:59 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 21:41:59 - Initializing the model...
+2025/10/14 21:42:00 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 21:42:08 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 21:42:10 - Total batch size: [16]
+2025/10/14 21:42:10 - Learning rate: [0.0001]
+2025/10/14 21:42:10 - Gradient Accumulation steps: [4]
+2025/10/14 21:42:10 - Total epochs: [10]
+2025/10/14 21:42:10 - Total steps: [20]
+2025/10/14 21:42:10 - Steps for updating per epoch: [2]
+2025/10/14 21:42:10 - Steps for validation: [10]
+
+2025/10/14 21:42:15 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:12:39 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:12:39 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:13:00 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:13:00 - Initializing the model...
+2025/10/14 22:13:00 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:13:09 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:13:12 - Total batch size: [16]
+2025/10/14 22:13:12 - Learning rate: [0.0001]
+2025/10/14 22:13:12 - Gradient Accumulation steps: [4]
+2025/10/14 22:13:12 - Total epochs: [10]
+2025/10/14 22:13:12 - Total steps: [20]
+2025/10/14 22:13:12 - Steps for updating per epoch: [2]
+2025/10/14 22:13:12 - Steps for validation: [10]
+
+2025/10/14 22:13:17 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:19:21 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:19:21 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:19:35 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:19:35 - Initializing the model...
+2025/10/14 22:19:36 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:19:47 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:19:53 - Total batch size: [32]
+2025/10/14 22:19:53 - Learning rate: [0.0001]
+2025/10/14 22:19:53 - Gradient Accumulation steps: [4]
+2025/10/14 22:19:53 - Total epochs: [10]
+2025/10/14 22:19:53 - Total steps: [10]
+2025/10/14 22:19:53 - Steps for updating per epoch: [1]
+2025/10/14 22:19:53 - Steps for validation: [5]
+
+2025/10/14 22:19:57 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:21:39 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:21:39 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:21:56 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:21:56 - Initializing the model...
+2025/10/14 22:21:56 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:22:07 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:22:12 - Total batch size: [32]
+2025/10/14 22:22:12 - Learning rate: [0.0001]
+2025/10/14 22:22:12 - Gradient Accumulation steps: [4]
+2025/10/14 22:22:12 - Total epochs: [10]
+2025/10/14 22:22:12 - Total steps: [10]
+2025/10/14 22:22:12 - Steps for updating per epoch: [1]
+2025/10/14 22:22:12 - Steps for validation: [5]
+
+2025/10/14 22:22:16 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:24:44 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:24:44 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:25:01 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:25:01 - Initializing the model...
+2025/10/14 22:25:01 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:25:12 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:25:17 - Total batch size: [32]
+2025/10/14 22:25:17 - Learning rate: [0.0001]
+2025/10/14 22:25:17 - Gradient Accumulation steps: [4]
+2025/10/14 22:25:17 - Total epochs: [10]
+2025/10/14 22:25:17 - Total steps: [10]
+2025/10/14 22:25:17 - Steps for updating per epoch: [1]
+2025/10/14 22:25:17 - Steps for validation: [5]
+
+2025/10/14 22:25:23 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:26:53 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:26:53 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:27:10 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:27:10 - Initializing the model...
+2025/10/14 22:27:10 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:27:21 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:27:26 - Total batch size: [32]
+2025/10/14 22:27:26 - Learning rate: [0.0001]
+2025/10/14 22:27:26 - Gradient Accumulation steps: [4]
+2025/10/14 22:27:26 - Total epochs: [10]
+2025/10/14 22:27:26 - Total steps: [10]
+2025/10/14 22:27:26 - Steps for updating per epoch: [1]
+2025/10/14 22:27:26 - Steps for validation: [5]
+
+2025/10/14 22:27:31 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:49:34 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:49:34 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:49:49 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:49:49 - Initializing the model...
+2025/10/14 22:49:50 - Load pretrained TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:49:59 - Router timestep_map: [1000.0, 980.0, 960.0, 940.0, 920.0, 900.0, 880.0, 860.0, 840.0, 820.0, 800.0, 780.0, 760.0, 740.0, 720.0, 700.0, 680.0, 660.0, 640.0, 620.0, 600.0, 580.0, 560.0, 540.0, 520.0, 500.0, 480.0, 460.0, 440.0, 420.0, 400.0, 380.0, 360.0, 340.0, 320.0, 300.0, 280.0, 260.0, 240.0, 220.0, 200.0, 180.0, 160.0, 140.0, 120.0, 100.0, 80.0, 60.0, 40.0, 20.0]
+2025/10/14 22:49:59 - Number of trainable parameters: 3150
+
+2025/10/14 22:49:59 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:50:03 - Total batch size: [32]
+2025/10/14 22:50:03 - Learning rate: [0.0001]
+2025/10/14 22:50:03 - Gradient Accumulation steps: [4]
+2025/10/14 22:50:03 - Total epochs: [10]
+2025/10/14 22:50:03 - Total steps: [10]
+2025/10/14 22:50:03 - Steps for updating per epoch: [1]
+2025/10/14 22:50:03 - Steps for validation: [5]
+
+2025/10/14 22:50:07 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:51:20 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:51:20 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:51:36 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:51:36 - Initializing the model...
+2025/10/14 22:51:36 - Load pretrained TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:51:45 - Router timestep_map: [1000.0, 980.0, 960.0, 940.0, 920.0, 900.0, 880.0, 860.0, 840.0, 820.0, 800.0, 780.0, 760.0, 740.0, 720.0, 700.0, 680.0, 660.0, 640.0, 620.0, 600.0, 580.0, 560.0, 540.0, 520.0, 500.0, 480.0, 460.0, 440.0, 420.0, 400.0, 380.0, 360.0, 340.0, 320.0, 300.0, 280.0, 260.0, 240.0, 220.0, 200.0, 180.0, 160.0, 140.0, 120.0, 100.0, 80.0, 60.0, 40.0, 20.0]
+2025/10/14 22:51:45 - Number of trainable parameters: 3150
+
+2025/10/14 22:51:45 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:51:48 - Total batch size: [32]
+2025/10/14 22:51:48 - Learning rate: [0.0001]
+2025/10/14 22:51:48 - Gradient Accumulation steps: [4]
+2025/10/14 22:51:48 - Total epochs: [10]
+2025/10/14 22:51:48 - Total steps: [10]
+2025/10/14 22:51:48 - Steps for updating per epoch: [1]
+2025/10/14 22:51:48 - Steps for validation: [5]
+
+2025/10/14 22:51:53 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:52:46 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:52:46 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:53:03 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:53:03 - Initializing the model...
+2025/10/14 22:53:03 - Load pretrained TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:53:12 - Router timestep_map: [1000.0, 980.0, 960.0, 940.0, 920.0, 900.0, 880.0, 860.0, 840.0, 820.0, 800.0, 780.0, 760.0, 740.0, 720.0, 700.0, 680.0, 660.0, 640.0, 620.0, 600.0, 580.0, 560.0, 540.0, 520.0, 500.0, 480.0, 460.0, 440.0, 420.0, 400.0, 380.0, 360.0, 340.0, 320.0, 300.0, 280.0, 260.0, 240.0, 220.0, 200.0, 180.0, 160.0, 140.0, 120.0, 100.0, 80.0, 60.0, 40.0, 20.0]
+2025/10/14 22:53:12 - Number of trainable parameters: 3150
+
+2025/10/14 22:53:12 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:53:15 - Total batch size: [32]
+2025/10/14 22:53:15 - Learning rate: [0.0001]
+2025/10/14 22:53:15 - Gradient Accumulation steps: [4]
+2025/10/14 22:53:15 - Total epochs: [10]
+2025/10/14 22:53:15 - Total steps: [10]
+2025/10/14 22:53:15 - Steps for updating per epoch: [1]
+2025/10/14 22:53:15 - Steps for validation: [5]
+
+2025/10/14 22:53:19 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/14 22:56:11 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/14 22:56:11 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/14 22:56:27 - Loaded [22] training samples and [10] validation samples
+
+2025/10/14 22:56:27 - Initializing the model...
+2025/10/14 22:56:28 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/14 22:56:39 - Number of trainable parameters: 3150
+
+2025/10/14 22:56:39 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/14 22:56:44 - Total batch size: [32]
+2025/10/14 22:56:44 - Learning rate: [0.0001]
+2025/10/14 22:56:44 - Gradient Accumulation steps: [4]
+2025/10/14 22:56:44 - Total epochs: [10]
+2025/10/14 22:56:44 - Total steps: [10]
+2025/10/14 22:56:44 - Steps for updating per epoch: [1]
+2025/10/14 22:56:44 - Steps for validation: [5]
+
+2025/10/14 22:56:48 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:27:40 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:27:40 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:28:17 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:28:17 - Initializing the model...
+2025/10/15 10:28:17 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:28:30 - Number of trainable parameters: 3150
+
+2025/10/15 10:28:30 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:28:36 - Total batch size: [32]
+2025/10/15 10:28:36 - Learning rate: [0.0001]
+2025/10/15 10:28:36 - Gradient Accumulation steps: [4]
+2025/10/15 10:28:36 - Total epochs: [10]
+2025/10/15 10:28:36 - Total steps: [10]
+2025/10/15 10:28:36 - Steps for updating per epoch: [1]
+2025/10/15 10:28:36 - Steps for validation: [5]
+
+2025/10/15 10:28:40 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:42:56 - Accelerator state:
+Distributed environment: DistributedType.MULTI_GPU  Backend: nccl
+Num processes: 2
+Process index: 0
+Local process index: 0
+Device: cuda:0
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:42:56 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:43:12 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:43:12 - Initializing the model...
+2025/10/15 10:43:12 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:43:24 - Number of trainable parameters: 3150
+
+2025/10/15 10:43:24 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:43:27 - Total batch size: [32]
+2025/10/15 10:43:27 - Learning rate: [0.0001]
+2025/10/15 10:43:27 - Gradient Accumulation steps: [4]
+2025/10/15 10:43:27 - Total epochs: [10]
+2025/10/15 10:43:27 - Total steps: [10]
+2025/10/15 10:43:27 - Steps for updating per epoch: [1]
+2025/10/15 10:43:27 - Steps for validation: [5]
+
+2025/10/15 10:43:31 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:44:08 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:44:09 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:44:30 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:44:30 - Initializing the model...
+2025/10/15 10:44:30 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:44:39 - Number of trainable parameters: 3150
+
+2025/10/15 10:44:39 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:44:42 - Total batch size: [16]
+2025/10/15 10:44:42 - Learning rate: [0.0001]
+2025/10/15 10:44:42 - Gradient Accumulation steps: [4]
+2025/10/15 10:44:42 - Total epochs: [10]
+2025/10/15 10:44:42 - Total steps: [20]
+2025/10/15 10:44:42 - Steps for updating per epoch: [2]
+2025/10/15 10:44:42 - Steps for validation: [10]
+
+2025/10/15 10:44:47 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:47:23 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:47:23 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:47:44 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:47:44 - Initializing the model...
+2025/10/15 10:47:45 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:47:53 - Number of trainable parameters: 3150
+
+2025/10/15 10:47:53 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:47:53 - Number of trainable parameters: 3150
+
+2025/10/15 10:47:57 - Total batch size: [16]
+2025/10/15 10:47:57 - Learning rate: [0.0001]
+2025/10/15 10:47:57 - Gradient Accumulation steps: [4]
+2025/10/15 10:47:57 - Total epochs: [10]
+2025/10/15 10:47:57 - Total steps: [20]
+2025/10/15 10:47:57 - Steps for updating per epoch: [2]
+2025/10/15 10:47:57 - Steps for validation: [10]
+
+2025/10/15 10:48:01 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:51:27 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:51:27 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:51:49 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:51:49 - Initializing the model...
+2025/10/15 10:51:49 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:51:58 - Number of trainable parameters: 3150
+
+2025/10/15 10:51:58 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:51:58 - Number of trainable parameters: 3150
+
+2025/10/15 10:52:02 - Total batch size: [16]
+2025/10/15 10:52:02 - Learning rate: [0.0001]
+2025/10/15 10:52:02 - Gradient Accumulation steps: [4]
+2025/10/15 10:52:02 - Total epochs: [10]
+2025/10/15 10:52:02 - Total steps: [20]
+2025/10/15 10:52:02 - Steps for updating per epoch: [2]
+2025/10/15 10:52:02 - Steps for validation: [10]
+
+2025/10/15 10:52:06 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:53:48 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:53:48 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:54:08 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:54:08 - Initializing the model...
+2025/10/15 10:54:08 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:54:17 - Number of trainable parameters: 3150
+
+2025/10/15 10:54:17 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:54:17 - Number of trainable parameters: 3150
+
+2025/10/15 10:54:20 - Total batch size: [16]
+2025/10/15 10:54:20 - Learning rate: [0.0001]
+2025/10/15 10:54:20 - Gradient Accumulation steps: [4]
+2025/10/15 10:54:20 - Total epochs: [10]
+2025/10/15 10:54:20 - Total steps: [20]
+2025/10/15 10:54:20 - Steps for updating per epoch: [2]
+2025/10/15 10:54:20 - Steps for validation: [10]
+
+2025/10/15 10:54:24 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 10:59:19 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 10:59:19 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 10:59:39 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 10:59:39 - Initializing the model...
+2025/10/15 10:59:39 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 10:59:48 - Number of trainable parameters: 3150
+
+2025/10/15 10:59:48 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 10:59:48 - Number of trainable parameters: 3150
+
+2025/10/15 10:59:51 - Total batch size: [16]
+2025/10/15 10:59:51 - Learning rate: [0.0001]
+2025/10/15 10:59:51 - Gradient Accumulation steps: [4]
+2025/10/15 10:59:51 - Total epochs: [10]
+2025/10/15 10:59:51 - Total steps: [20]
+2025/10/15 10:59:51 - Steps for updating per epoch: [2]
+2025/10/15 10:59:51 - Steps for validation: [10]
+
+2025/10/15 10:59:56 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:01:26 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:01:26 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:01:48 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:01:48 - Initializing the model...
+2025/10/15 11:01:48 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:01:56 - Number of trainable parameters: 3150
+
+2025/10/15 11:01:56 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:01:56 - Number of trainable parameters: 3150
+
+2025/10/15 11:01:59 - Total batch size: [16]
+2025/10/15 11:01:59 - Learning rate: [0.0001]
+2025/10/15 11:01:59 - Gradient Accumulation steps: [4]
+2025/10/15 11:01:59 - Total epochs: [10]
+2025/10/15 11:01:59 - Total steps: [20]
+2025/10/15 11:01:59 - Steps for updating per epoch: [2]
+2025/10/15 11:01:59 - Steps for validation: [10]
+
+2025/10/15 11:02:04 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:03:35 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:03:35 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:03:56 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:03:56 - Initializing the model...
+2025/10/15 11:03:56 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:04:05 - Number of trainable parameters: 3150
+
+2025/10/15 11:04:05 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:04:05 - Number of trainable parameters: 3150
+
+2025/10/15 11:04:07 - Total batch size: [16]
+2025/10/15 11:04:07 - Learning rate: [0.0001]
+2025/10/15 11:04:07 - Gradient Accumulation steps: [4]
+2025/10/15 11:04:07 - Total epochs: [10]
+2025/10/15 11:04:07 - Total steps: [20]
+2025/10/15 11:04:07 - Steps for updating per epoch: [2]
+2025/10/15 11:04:07 - Steps for validation: [10]
+
+2025/10/15 11:04:11 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:05:11 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:05:11 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:05:32 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:05:32 - Initializing the model...
+2025/10/15 11:05:32 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:05:40 - Number of trainable parameters: 3150
+
+2025/10/15 11:05:40 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:05:40 - Number of trainable parameters: 3150
+
+2025/10/15 11:05:42 - Total batch size: [16]
+2025/10/15 11:05:42 - Learning rate: [0.0001]
+2025/10/15 11:05:42 - Gradient Accumulation steps: [4]
+2025/10/15 11:05:42 - Total epochs: [10]
+2025/10/15 11:05:42 - Total steps: [20]
+2025/10/15 11:05:42 - Steps for updating per epoch: [2]
+2025/10/15 11:05:42 - Steps for validation: [10]
+
+2025/10/15 11:05:47 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:07:06 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:07:06 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:07:28 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:07:28 - Initializing the model...
+2025/10/15 11:07:28 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:07:36 - Number of trainable parameters: 3150
+
+2025/10/15 11:07:36 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:07:36 - Number of trainable parameters: 3150
+
+2025/10/15 11:07:38 - Total batch size: [16]
+2025/10/15 11:07:38 - Learning rate: [0.0001]
+2025/10/15 11:07:38 - Gradient Accumulation steps: [4]
+2025/10/15 11:07:38 - Total epochs: [10]
+2025/10/15 11:07:38 - Total steps: [20]
+2025/10/15 11:07:38 - Steps for updating per epoch: [2]
+2025/10/15 11:07:38 - Steps for validation: [10]
+
+2025/10/15 11:07:43 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:09:49 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:09:49 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:11:07 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:11:07 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:11:28 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:11:28 - Initializing the model...
+2025/10/15 11:11:28 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:11:37 - Number of trainable parameters: 3150
+
+2025/10/15 11:11:37 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:11:37 - Number of trainable parameters: 3150
+
+2025/10/15 11:11:39 - Total batch size: [16]
+2025/10/15 11:11:39 - Learning rate: [0.0001]
+2025/10/15 11:11:39 - Gradient Accumulation steps: [4]
+2025/10/15 11:11:39 - Total epochs: [10]
+2025/10/15 11:11:39 - Total steps: [20]
+2025/10/15 11:11:39 - Steps for updating per epoch: [2]
+2025/10/15 11:11:39 - Steps for validation: [10]
+
+2025/10/15 11:11:44 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:50:06 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:50:06 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:50:26 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:50:26 - Initializing the model...
+2025/10/15 11:50:27 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:50:35 - Number of trainable parameters: 3150
+
+2025/10/15 11:50:35 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:50:35 - Number of trainable parameters: 3150
+
+2025/10/15 11:50:37 - Total batch size: [16]
+2025/10/15 11:50:37 - Learning rate: [0.0001]
+2025/10/15 11:50:37 - Gradient Accumulation steps: [4]
+2025/10/15 11:50:37 - Total epochs: [10]
+2025/10/15 11:50:37 - Total steps: [20]
+2025/10/15 11:50:37 - Steps for updating per epoch: [2]
+2025/10/15 11:50:37 - Steps for validation: [10]
+
+2025/10/15 11:50:42 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 11:53:51 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 11:53:51 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 11:54:12 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 11:54:12 - Initializing the model...
+2025/10/15 11:54:13 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 11:54:21 - Number of trainable parameters: 3150
+
+2025/10/15 11:54:21 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 11:54:21 - Number of trainable parameters: 3150
+
+2025/10/15 11:54:23 - Total batch size: [16]
+2025/10/15 11:54:23 - Learning rate: [0.0001]
+2025/10/15 11:54:23 - Gradient Accumulation steps: [4]
+2025/10/15 11:54:23 - Total epochs: [10]
+2025/10/15 11:54:23 - Total steps: [20]
+2025/10/15 11:54:23 - Steps for updating per epoch: [2]
+2025/10/15 11:54:23 - Steps for validation: [10]
+
+2025/10/15 11:54:28 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 12:03:38 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 12:03:38 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 12:03:58 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 12:03:58 - Initializing the model...
+2025/10/15 12:03:58 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 12:04:07 - Number of trainable parameters: 3150
+
+2025/10/15 12:04:07 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 12:04:07 - Number of trainable parameters: 3150
+
+2025/10/15 12:04:09 - Total batch size: [16]
+2025/10/15 12:04:09 - Learning rate: [0.0001]
+2025/10/15 12:04:09 - Gradient Accumulation steps: [4]
+2025/10/15 12:04:09 - Total epochs: [10]
+2025/10/15 12:04:09 - Total steps: [20]
+2025/10/15 12:04:09 - Steps for updating per epoch: [2]
+2025/10/15 12:04:09 - Steps for validation: [10]
+
+2025/10/15 12:04:13 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 15:14:02 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 15:14:02 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 15:14:23 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 15:14:23 - Initializing the model...
+2025/10/15 15:14:23 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 15:14:31 - Number of trainable parameters: 3150
+
+2025/10/15 15:14:31 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 15:14:31 - Number of trainable parameters: 3150
+
+2025/10/15 15:14:33 - Total batch size: [16]
+2025/10/15 15:14:33 - Learning rate: [0.0001]
+2025/10/15 15:14:33 - Gradient Accumulation steps: [4]
+2025/10/15 15:14:33 - Total epochs: [10]
+2025/10/15 15:14:33 - Total steps: [20]
+2025/10/15 15:14:33 - Steps for updating per epoch: [2]
+2025/10/15 15:14:33 - Steps for validation: [10]
+
+2025/10/15 15:14:38 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 15:18:10 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 15:18:10 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 15:18:31 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 15:18:31 - Initializing the model...
+2025/10/15 15:18:31 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 15:18:40 - Number of trainable parameters: 3150
+
+2025/10/15 15:18:40 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 15:18:40 - Number of trainable parameters: 3150
+
+2025/10/15 15:18:42 - Total batch size: [16]
+2025/10/15 15:18:42 - Learning rate: [0.0001]
+2025/10/15 15:18:42 - Gradient Accumulation steps: [4]
+2025/10/15 15:18:42 - Total epochs: [10]
+2025/10/15 15:18:42 - Total steps: [20]
+2025/10/15 15:18:42 - Steps for updating per epoch: [2]
+2025/10/15 15:18:42 - Steps for validation: [10]
+
+2025/10/15 15:18:46 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 15:22:04 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 15:22:04 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 15:22:25 - Loaded [22] training samples and [10] validation samples
+
+2025/10/15 15:22:25 - Initializing the model...
+2025/10/15 15:22:25 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 15:22:34 - Number of trainable parameters: 3150
+
+2025/10/15 15:22:34 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 15:22:34 - Number of trainable parameters: 3150
+
+2025/10/15 15:22:36 - Total batch size: [16]
+2025/10/15 15:22:36 - Learning rate: [0.0001]
+2025/10/15 15:22:36 - Gradient Accumulation steps: [4]
+2025/10/15 15:22:36 - Total epochs: [10]
+2025/10/15 15:22:36 - Total steps: [20]
+2025/10/15 15:22:36 - Steps for updating per epoch: [2]
+2025/10/15 15:22:36 - Steps for validation: [10]
+
+2025/10/15 15:22:40 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 15:25:18 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 15:52:55 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 15:52:55 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 15:53:16 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 15:53:16 - Initializing the model...
+2025/10/15 15:53:16 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 15:53:25 - Number of trainable parameters: 3150
+
+2025/10/15 15:53:25 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 15:53:25 - Number of trainable parameters: 3150
+
+2025/10/15 15:53:26 - Total batch size: [16]
+2025/10/15 15:53:26 - Learning rate: [0.0001]
+2025/10/15 15:53:26 - Gradient Accumulation steps: [4]
+2025/10/15 15:53:26 - Total epochs: [10]
+2025/10/15 15:53:26 - Total steps: [20]
+2025/10/15 15:53:26 - Steps for updating per epoch: [2]
+2025/10/15 15:53:26 - Steps for validation: [200]
+
+2025/10/15 15:53:31 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 15:56:08 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 16:01:29 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 16:01:29 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 16:01:50 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 16:01:50 - Initializing the model...
+2025/10/15 16:01:51 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 16:01:59 - Number of trainable parameters: 3150
+
+2025/10/15 16:01:59 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 16:01:59 - Number of trainable parameters: 3150
+
+2025/10/15 16:02:01 - Total batch size: [16]
+2025/10/15 16:02:01 - Learning rate: [0.0001]
+2025/10/15 16:02:01 - Gradient Accumulation steps: [4]
+2025/10/15 16:02:01 - Total epochs: [10]
+2025/10/15 16:02:01 - Total steps: [20]
+2025/10/15 16:02:01 - Steps for updating per epoch: [2]
+2025/10/15 16:02:01 - Steps for validation: [200]
+
+2025/10/15 16:02:06 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 16:04:43 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 16:05:33 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 16:05:33 - chamfer_distances: ['0.0640']
+2025/10/15 16:05:33 - f_scores: ['1.0000']
+2025/10/15 16:06:04 - Validation [01/04] chamfer_distance: 0.0404, f_score: 1.0000
+2025/10/15 16:06:04 - chamfer_distances: ['0.0404']
+2025/10/15 16:06:04 - f_scores: ['1.0000']
+2025/10/15 16:07:51 - Validation [02/04] chamfer_distance: 0.1188, f_score: 0.8113
+2025/10/15 16:07:51 - chamfer_distances: ['0.1188']
+2025/10/15 16:07:51 - f_scores: ['0.8113']
+2025/10/15 16:08:21 - Validation [03/04] chamfer_distance: 0.0269, f_score: 1.0000
+2025/10/15 16:08:21 - chamfer_distances: ['0.0269']
+2025/10/15 16:08:21 - f_scores: ['1.0000']
+2025/10/15 16:11:18 - [000002 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.4054
+2025/10/15 16:50:48 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 16:50:48 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 16:51:09 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 16:51:09 - Initializing the model...
+2025/10/15 16:51:09 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 16:51:18 - Number of trainable parameters: 3150
+
+2025/10/15 16:51:18 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 16:51:18 - Number of trainable parameters: 3150
+
+2025/10/15 16:51:20 - Total batch size: [16]
+2025/10/15 16:51:20 - Learning rate: [0.0001]
+2025/10/15 16:51:20 - Gradient Accumulation steps: [4]
+2025/10/15 16:51:20 - Total epochs: [10]
+2025/10/15 16:51:20 - Total steps: [20]
+2025/10/15 16:51:20 - Steps for updating per epoch: [2]
+2025/10/15 16:51:20 - Steps for validation: [200]
+
+2025/10/15 16:51:24 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 16:51:49 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 16:51:49 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 16:52:10 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 16:52:10 - Initializing the model...
+2025/10/15 16:52:10 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 16:52:19 - Number of trainable parameters: 3150
+
+2025/10/15 16:52:19 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 16:52:19 - Number of trainable parameters: 3150
+
+2025/10/15 16:52:21 - Total batch size: [16]
+2025/10/15 16:52:21 - Learning rate: [0.0001]
+2025/10/15 16:52:21 - Gradient Accumulation steps: [4]
+2025/10/15 16:52:21 - Total epochs: [10]
+2025/10/15 16:52:21 - Total steps: [20]
+2025/10/15 16:52:21 - Steps for updating per epoch: [2]
+2025/10/15 16:52:21 - Steps for validation: [200]
+
+2025/10/15 16:52:25 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 16:54:29 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 16:54:29 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 16:54:49 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 16:54:49 - Initializing the model...
+2025/10/15 16:54:49 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 16:54:58 - Number of trainable parameters: 3150
+
+2025/10/15 16:54:58 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 16:54:58 - Number of trainable parameters: 3150
+
+2025/10/15 16:55:00 - Total batch size: [16]
+2025/10/15 16:55:00 - Learning rate: [0.0001]
+2025/10/15 16:55:00 - Gradient Accumulation steps: [4]
+2025/10/15 16:55:00 - Total epochs: [10]
+2025/10/15 16:55:00 - Total steps: [20]
+2025/10/15 16:55:00 - Steps for updating per epoch: [2]
+2025/10/15 16:55:00 - Steps for validation: [200]
+
+2025/10/15 16:55:05 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:01:02 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:01:02 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:01:23 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 17:01:23 - Initializing the model...
+2025/10/15 17:01:23 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:01:32 - Number of trainable parameters: 3150
+
+2025/10/15 17:01:32 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:01:32 - Number of trainable parameters: 3150
+
+2025/10/15 17:01:34 - Total batch size: [16]
+2025/10/15 17:01:34 - Learning rate: [0.0001]
+2025/10/15 17:01:34 - Gradient Accumulation steps: [4]
+2025/10/15 17:01:34 - Total epochs: [10]
+2025/10/15 17:01:34 - Total steps: [20]
+2025/10/15 17:01:34 - Steps for updating per epoch: [2]
+2025/10/15 17:01:34 - Steps for validation: [200]
+
+2025/10/15 17:01:38 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:05:17 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 17:06:13 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 17:06:13 - chamfer_distances: ['0.0640']
+2025/10/15 17:06:13 - f_scores: ['1.0000']
+2025/10/15 17:06:50 - Validation [01/04] chamfer_distance: 0.0404, f_score: 1.0000
+2025/10/15 17:06:50 - chamfer_distances: ['0.0404']
+2025/10/15 17:06:50 - f_scores: ['1.0000']
+2025/10/15 17:08:41 - Validation [02/04] chamfer_distance: 0.1188, f_score: 0.8113
+2025/10/15 17:08:41 - chamfer_distances: ['0.1188']
+2025/10/15 17:08:41 - f_scores: ['0.8113']
+2025/10/15 17:09:17 - Validation [03/04] chamfer_distance: 0.0269, f_score: 1.0000
+2025/10/15 17:09:17 - chamfer_distances: ['0.0269']
+2025/10/15 17:09:17 - f_scores: ['1.0000']
+2025/10/15 17:20:44 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:20:44 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:21:05 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 17:21:05 - Initializing the model...
+2025/10/15 17:21:06 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:21:14 - Number of trainable parameters: 3150
+
+2025/10/15 17:21:14 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:21:14 - Number of trainable parameters: 3150
+
+2025/10/15 17:21:16 - Total batch size: [16]
+2025/10/15 17:21:16 - Learning rate: [0.0001]
+2025/10/15 17:21:16 - Gradient Accumulation steps: [4]
+2025/10/15 17:21:16 - Total epochs: [10]
+2025/10/15 17:21:16 - Total steps: [20]
+2025/10/15 17:21:16 - Steps for updating per epoch: [2]
+2025/10/15 17:21:16 - Steps for validation: [200]
+
+2025/10/15 17:21:21 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:22:48 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:22:48 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:23:08 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 17:23:08 - Initializing the model...
+2025/10/15 17:23:08 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:23:17 - Number of trainable parameters: 3150
+
+2025/10/15 17:23:17 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:23:17 - Number of trainable parameters: 3150
+
+2025/10/15 17:23:18 - Total batch size: [16]
+2025/10/15 17:23:18 - Learning rate: [0.0001]
+2025/10/15 17:23:18 - Gradient Accumulation steps: [4]
+2025/10/15 17:23:18 - Total epochs: [10]
+2025/10/15 17:23:18 - Total steps: [20]
+2025/10/15 17:23:18 - Steps for updating per epoch: [2]
+2025/10/15 17:23:18 - Steps for validation: [200]
+
+2025/10/15 17:23:23 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:25:59 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:25:59 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:26:20 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 17:26:20 - Initializing the model...
+2025/10/15 17:26:20 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:26:29 - Number of trainable parameters: 3150
+
+2025/10/15 17:26:29 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:26:29 - Number of trainable parameters: 3150
+
+2025/10/15 17:26:31 - Total batch size: [16]
+2025/10/15 17:26:31 - Learning rate: [0.0001]
+2025/10/15 17:26:31 - Gradient Accumulation steps: [4]
+2025/10/15 17:26:31 - Total epochs: [10]
+2025/10/15 17:26:31 - Total steps: [20]
+2025/10/15 17:26:31 - Steps for updating per epoch: [2]
+2025/10/15 17:26:31 - Steps for validation: [200]
+
+2025/10/15 17:26:35 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:28:58 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:28:58 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:29:18 - Loaded [25] training samples and [200] validation samples
+
+2025/10/15 17:29:18 - Initializing the model...
+2025/10/15 17:29:18 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:29:27 - Number of trainable parameters: 3150
+
+2025/10/15 17:29:27 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:29:27 - Number of trainable parameters: 3150
+
+2025/10/15 17:29:29 - Total batch size: [16]
+2025/10/15 17:29:29 - Learning rate: [0.0001]
+2025/10/15 17:29:29 - Gradient Accumulation steps: [4]
+2025/10/15 17:29:29 - Total epochs: [10]
+2025/10/15 17:29:29 - Total steps: [20]
+2025/10/15 17:29:29 - Steps for updating per epoch: [2]
+2025/10/15 17:29:29 - Steps for validation: [200]
+
+2025/10/15 17:29:33 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:32:11 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 17:33:02 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 17:33:02 - chamfer_distances: ['0.0640']
+2025/10/15 17:33:02 - f_scores: ['1.0000']
+2025/10/15 17:33:34 - Validation [01/04] chamfer_distance: 0.0404, f_score: 1.0000
+2025/10/15 17:33:34 - chamfer_distances: ['0.0404']
+2025/10/15 17:33:34 - f_scores: ['1.0000']
+2025/10/15 17:34:55 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:34:55 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:35:16 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 17:35:16 - Initializing the model...
+2025/10/15 17:35:16 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:35:25 - Number of trainable parameters: 3150
+
+2025/10/15 17:35:25 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:35:25 - Number of trainable parameters: 3150
+
+2025/10/15 17:35:27 - Total batch size: [16]
+2025/10/15 17:35:27 - Learning rate: [0.0001]
+2025/10/15 17:35:27 - Gradient Accumulation steps: [4]
+2025/10/15 17:35:27 - Total epochs: [10]
+2025/10/15 17:35:27 - Total steps: [20]
+2025/10/15 17:35:27 - Steps for updating per epoch: [2]
+2025/10/15 17:35:27 - Steps for validation: [1]
+
+2025/10/15 17:35:31 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:38:09 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 17:38:57 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 17:38:57 - chamfer_distances: ['0.0640']
+2025/10/15 17:38:57 - f_scores: ['1.0000']
+2025/10/15 17:39:39 - Validation [01/04] chamfer_distance: 0.0397, f_score: 1.0000
+2025/10/15 17:39:39 - chamfer_distances: ['0.0397']
+2025/10/15 17:39:39 - f_scores: ['1.0000']
+2025/10/15 17:40:24 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:40:24 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:40:45 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 17:40:45 - Initializing the model...
+2025/10/15 17:40:46 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:40:54 - Number of trainable parameters: 3150
+
+2025/10/15 17:40:54 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:40:54 - Number of trainable parameters: 3150
+
+2025/10/15 17:40:56 - Total batch size: [16]
+2025/10/15 17:40:56 - Learning rate: [0.0001]
+2025/10/15 17:40:56 - Gradient Accumulation steps: [4]
+2025/10/15 17:40:56 - Total epochs: [10]
+2025/10/15 17:40:56 - Total steps: [20]
+2025/10/15 17:40:56 - Steps for updating per epoch: [2]
+2025/10/15 17:40:56 - Steps for validation: [1]
+
+2025/10/15 17:41:01 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:51:13 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:51:13 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:51:34 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 17:51:34 - Initializing the model...
+2025/10/15 17:51:34 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:51:43 - Number of trainable parameters: 3150
+
+2025/10/15 17:51:43 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:51:43 - Number of trainable parameters: 3150
+
+2025/10/15 17:51:45 - Total batch size: [16]
+2025/10/15 17:51:45 - Learning rate: [0.0001]
+2025/10/15 17:51:45 - Gradient Accumulation steps: [4]
+2025/10/15 17:51:45 - Total epochs: [10]
+2025/10/15 17:51:45 - Total steps: [20]
+2025/10/15 17:51:45 - Steps for updating per epoch: [2]
+2025/10/15 17:51:45 - Steps for validation: [1]
+
+2025/10/15 17:51:49 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 17:53:45 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 17:53:45 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 17:54:06 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 17:54:06 - Initializing the model...
+2025/10/15 17:54:06 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 17:54:15 - Number of trainable parameters: 3150
+
+2025/10/15 17:54:15 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 17:54:15 - Number of trainable parameters: 3150
+
+2025/10/15 17:54:17 - Total batch size: [16]
+2025/10/15 17:54:17 - Learning rate: [0.0001]
+2025/10/15 17:54:17 - Gradient Accumulation steps: [4]
+2025/10/15 17:54:17 - Total epochs: [10]
+2025/10/15 17:54:17 - Total steps: [20]
+2025/10/15 17:54:17 - Steps for updating per epoch: [2]
+2025/10/15 17:54:17 - Steps for validation: [1]
+
+2025/10/15 17:54:21 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 18:56:07 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 18:56:07 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 18:56:28 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 18:56:28 - Initializing the model...
+2025/10/15 18:56:28 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 18:56:36 - Number of trainable parameters: 3150
+
+2025/10/15 18:56:36 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 18:56:36 - Number of trainable parameters: 3150
+
+2025/10/15 18:56:39 - Total batch size: [16]
+2025/10/15 18:56:39 - Learning rate: [0.0001]
+2025/10/15 18:56:39 - Gradient Accumulation steps: [4]
+2025/10/15 18:56:39 - Total epochs: [10]
+2025/10/15 18:56:39 - Total steps: [20]
+2025/10/15 18:56:39 - Steps for updating per epoch: [2]
+2025/10/15 18:56:39 - Steps for validation: [1]
+
+2025/10/15 18:56:43 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 18:59:08 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 18:59:08 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 18:59:30 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 18:59:30 - Initializing the model...
+2025/10/15 18:59:30 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 18:59:38 - Number of trainable parameters: 3150
+
+2025/10/15 18:59:38 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 18:59:38 - Number of trainable parameters: 3150
+
+2025/10/15 18:59:40 - Total batch size: [16]
+2025/10/15 18:59:40 - Learning rate: [0.0001]
+2025/10/15 18:59:40 - Gradient Accumulation steps: [4]
+2025/10/15 18:59:40 - Total epochs: [10]
+2025/10/15 18:59:40 - Total steps: [20]
+2025/10/15 18:59:40 - Steps for updating per epoch: [2]
+2025/10/15 18:59:40 - Steps for validation: [1]
+
+2025/10/15 18:59:46 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:02:00 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 19:02:00 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 19:02:21 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 19:02:21 - Initializing the model...
+2025/10/15 19:02:21 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 19:02:30 - Number of trainable parameters: 3150
+
+2025/10/15 19:02:30 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 19:02:30 - Number of trainable parameters: 3150
+
+2025/10/15 19:02:32 - Total batch size: [16]
+2025/10/15 19:02:32 - Learning rate: [0.0001]
+2025/10/15 19:02:32 - Gradient Accumulation steps: [4]
+2025/10/15 19:02:32 - Total epochs: [10]
+2025/10/15 19:02:32 - Total steps: [20]
+2025/10/15 19:02:32 - Steps for updating per epoch: [2]
+2025/10/15 19:02:32 - Steps for validation: [1]
+
+2025/10/15 19:02:36 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:04:39 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 19:04:39 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 19:05:00 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 19:05:00 - Initializing the model...
+2025/10/15 19:05:00 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 19:05:09 - Number of trainable parameters: 3150
+
+2025/10/15 19:05:09 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 19:05:09 - Number of trainable parameters: 3150
+
+2025/10/15 19:05:11 - Total batch size: [16]
+2025/10/15 19:05:11 - Learning rate: [0.0001]
+2025/10/15 19:05:11 - Gradient Accumulation steps: [4]
+2025/10/15 19:05:11 - Total epochs: [10]
+2025/10/15 19:05:11 - Total steps: [20]
+2025/10/15 19:05:11 - Steps for updating per epoch: [2]
+2025/10/15 19:05:11 - Steps for validation: [1]
+
+2025/10/15 19:05:15 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:09:43 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 19:09:43 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 19:10:04 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 19:10:04 - Initializing the model...
+2025/10/15 19:10:05 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 19:10:13 - Number of trainable parameters: 3150
+
+2025/10/15 19:10:13 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 19:10:13 - Number of trainable parameters: 3150
+
+2025/10/15 19:10:15 - Total batch size: [16]
+2025/10/15 19:10:15 - Learning rate: [0.0001]
+2025/10/15 19:10:15 - Gradient Accumulation steps: [4]
+2025/10/15 19:10:15 - Total epochs: [10]
+2025/10/15 19:10:15 - Total steps: [20]
+2025/10/15 19:10:15 - Steps for updating per epoch: [2]
+2025/10/15 19:10:15 - Steps for validation: [1]
+
+2025/10/15 19:10:20 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:19:15 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 19:19:15 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 19:19:36 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 19:19:36 - Initializing the model...
+2025/10/15 19:19:36 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 19:19:45 - Number of trainable parameters: 3150
+
+2025/10/15 19:19:45 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 19:19:45 - Number of trainable parameters: 3150
+
+2025/10/15 19:19:46 - Total batch size: [16]
+2025/10/15 19:19:46 - Learning rate: [0.0001]
+2025/10/15 19:19:46 - Gradient Accumulation steps: [4]
+2025/10/15 19:19:46 - Total epochs: [10]
+2025/10/15 19:19:46 - Total steps: [20]
+2025/10/15 19:19:46 - Steps for updating per epoch: [2]
+2025/10/15 19:19:46 - Steps for validation: [1]
+
+2025/10/15 19:19:51 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:26:59 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 19:26:59 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 19:27:20 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 19:27:20 - Initializing the model...
+2025/10/15 19:27:21 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 19:27:29 - Number of trainable parameters: 3150
+
+2025/10/15 19:27:29 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 19:27:29 - Number of trainable parameters: 3150
+
+2025/10/15 19:27:31 - Total batch size: [16]
+2025/10/15 19:27:31 - Learning rate: [0.0001]
+2025/10/15 19:27:31 - Gradient Accumulation steps: [4]
+2025/10/15 19:27:31 - Total epochs: [10]
+2025/10/15 19:27:31 - Total steps: [20]
+2025/10/15 19:27:31 - Steps for updating per epoch: [2]
+2025/10/15 19:27:31 - Steps for validation: [1]
+
+2025/10/15 19:27:36 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 19:32:15 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 19:33:05 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 19:33:05 - chamfer_distances: ['0.0640']
+2025/10/15 19:33:05 - f_scores: ['1.0000']
+2025/10/15 19:33:46 - Validation [01/04] chamfer_distance: 0.0397, f_score: 1.0000
+2025/10/15 19:33:46 - chamfer_distances: ['0.0397']
+2025/10/15 19:33:46 - f_scores: ['1.0000']
+2025/10/15 19:34:33 - Validation [02/04] chamfer_distance: 0.0445, f_score: 1.0000
+2025/10/15 19:34:33 - chamfer_distances: ['0.0445']
+2025/10/15 19:34:33 - f_scores: ['1.0000']
+2025/10/15 19:35:18 - Validation [03/04] chamfer_distance: 0.0497, f_score: 0.9939
+2025/10/15 19:35:18 - chamfer_distances: ['0.0497']
+2025/10/15 19:35:18 - f_scores: ['0.9939']
+2025/10/15 19:40:13 - [000002 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.4054
+2025/10/15 19:44:50 - [000003 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.5613

@@ -663,7 +663,7 @@ def main():
                     ori_latents_t = noise_scheduler.step(noise_pred, t_step, ori_latents_t, return_dict=False)[0]
                     noise_scheduler._step_index = current_step_index
                     
-            if i % 3 != 0:
+            if t[0].item() % 3 != 0: #  t[0].item() % 2 == 0
                 transformer.train() # use the drop out
                 noise_output_router_ = transformer(
                     hidden_states=latents_t_model_input,
@@ -699,7 +699,9 @@ def main():
             latents_t = noise_scheduler.step(noise_pred_router, t_step, latents_t, return_dict=False)[0]
                   
             if i % 3 != 0:
+                
                 data_loss = tF.mse_loss(ori_latents_t, latents_t)
+                print(f"for time step {t_step}, data_loss:", data_loss)
                 loss = data_loss + configs["train"].get("l1_lambda", 0.0001) * l1_loss
 
                 accelerator.backward(loss)

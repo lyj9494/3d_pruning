@@ -744,9 +744,6 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
 
         if activate_router and not ori:
             # print("--------------------------activate_router--------------------------")
-            print(f"for time step {timestep}")
-            print(f"self.timestep_map:", self.timestep_map)
-            print(f"self.timestep_map[ts]:", self.timestep_map[ts])
             if isinstance(timestep, torch.Tensor):
                 ts = timestep[0].item()
             else:

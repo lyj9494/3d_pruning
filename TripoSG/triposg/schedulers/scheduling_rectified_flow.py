@@ -206,6 +206,8 @@ class RectifiedFlowScheduler(SchedulerMixin, ConfigMixin):
         self.timesteps = timesteps.to(device=device)
         self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
 
+        # print('sigmas:', self.sigmas)
+
         self._step_index = None
         self._begin_index = None
 
@@ -289,7 +291,8 @@ class RectifiedFlowScheduler(SchedulerMixin, ConfigMixin):
 
         # Upcast to avoid precision issues when computing prev_sample
         sample = sample.to(torch.float32)
-
+        
+        
         sigma = self.sigmas[self.step_index]
         sigma_next = self.sigmas[self.step_index + 1]
 

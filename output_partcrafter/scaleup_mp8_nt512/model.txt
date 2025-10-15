@@ -1,0 +1,96 @@
+Number of buffers: 0
+Number of trainable / all parameters: 3150 / 1439559310
+
+Model architecture:
+TripoSGDiTModel(
+  (time_embed): Timesteps()
+  (time_proj): TimestepEmbedding(
+    (linear_1): Linear(in_features=2048, out_features=8192, bias=True)
+    (act): GELU(approximate='none')
+    (linear_2): Linear(in_features=8192, out_features=2048, bias=True)
+  )
+  (proj_in): Linear(in_features=64, out_features=2048, bias=True)
+  (blocks): ModuleList(
+    (0-10): 11 x DiTBlock(
+      (norm1): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (attn1): Attention(
+        (norm_q): RMSNorm()
+        (norm_k): RMSNorm()
+        (to_q): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_k): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_v): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_out): ModuleList(
+          (0): Linear(in_features=2048, out_features=2048, bias=True)
+          (1): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (norm2): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (attn2): Attention(
+        (norm_q): RMSNorm()
+        (norm_k): RMSNorm()
+        (to_q): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_k): Linear(in_features=1024, out_features=2048, bias=False)
+        (to_v): Linear(in_features=1024, out_features=2048, bias=False)
+        (to_out): ModuleList(
+          (0): Linear(in_features=2048, out_features=2048, bias=True)
+          (1): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (norm3): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (ff): FeedForward(
+        (net): ModuleList(
+          (0): GELU(
+            (proj): Linear(in_features=2048, out_features=8192, bias=True)
+          )
+          (1): Dropout(p=0.0, inplace=False)
+          (2): Linear(in_features=8192, out_features=2048, bias=True)
+        )
+      )
+    )
+    (11-20): 10 x DiTBlock(
+      (norm1): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (attn1): Attention(
+        (norm_q): RMSNorm()
+        (norm_k): RMSNorm()
+        (to_q): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_k): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_v): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_out): ModuleList(
+          (0): Linear(in_features=2048, out_features=2048, bias=True)
+          (1): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (norm2): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (attn2): Attention(
+        (norm_q): RMSNorm()
+        (norm_k): RMSNorm()
+        (to_q): Linear(in_features=2048, out_features=2048, bias=False)
+        (to_k): Linear(in_features=1024, out_features=2048, bias=False)
+        (to_v): Linear(in_features=1024, out_features=2048, bias=False)
+        (to_out): ModuleList(
+          (0): Linear(in_features=2048, out_features=2048, bias=True)
+          (1): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (norm3): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (ff): FeedForward(
+        (net): ModuleList(
+          (0): GELU(
+            (proj): Linear(in_features=2048, out_features=8192, bias=True)
+          )
+          (1): Dropout(p=0.0, inplace=False)
+          (2): Linear(in_features=8192, out_features=2048, bias=True)
+        )
+      )
+      (skip_norm): FP32LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+      (skip_linear): Linear(in_features=4096, out_features=2048, bias=True)
+    )
+  )
+  (norm_out): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+  (proj_out): Linear(in_features=2048, out_features=64, bias=True)
+  (routers): ModuleList(
+    (0-49): 50 x Router(
+      (activation): Sigmoid()
+    )
+  )
+)

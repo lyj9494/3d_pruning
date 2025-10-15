@@ -86,7 +86,7 @@ val:
     default_f1: 0.0
 args:
   config: configs/mp8_nt2048.yaml
-  tag: scaleup_mp8_nt512_test
+  tag: scaleup_mp8_nt512
   output_dir: output_partcrafter
   resume_from_iter: None
   seed: '0'
