@@ -1,0 +1,66 @@
+2025/10/15 20:17:44 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 20:17:44 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512]
+
+2025/10/15 20:18:03 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 20:18:03 - Initializing the model...
+2025/10/15 20:18:03 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 20:18:13 - Number of trainable parameters: 3150
+
+2025/10/15 20:18:13 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 20:18:13 - Number of trainable parameters: 3150
+
+2025/10/15 20:19:49 - Total batch size: [16]
+2025/10/15 20:19:49 - Learning rate: [0.0001]
+2025/10/15 20:19:49 - Gradient Accumulation steps: [4]
+2025/10/15 20:19:49 - Total epochs: [10]
+2025/10/15 20:19:49 - Total steps: [20]
+2025/10/15 20:19:49 - Steps for updating per epoch: [2]
+2025/10/15 20:19:49 - Steps for validation: [1]
+
+2025/10/15 20:19:56 - Start training into output_triposg_mask/scaleup_mp8_nt512
+
+2025/10/15 20:20:13 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 20:20:13 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512]
+
+2025/10/15 20:20:37 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 20:20:37 - Initializing the model...
+2025/10/15 20:20:37 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 20:20:46 - Number of trainable parameters: 3150
+
+2025/10/15 20:20:46 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 20:20:46 - Number of trainable parameters: 3150
+
+2025/10/15 20:22:22 - Total batch size: [16]
+2025/10/15 20:22:22 - Learning rate: [0.0001]
+2025/10/15 20:22:22 - Gradient Accumulation steps: [4]
+2025/10/15 20:22:22 - Total epochs: [10]
+2025/10/15 20:22:22 - Total steps: [20]
+2025/10/15 20:22:22 - Steps for updating per epoch: [2]
+2025/10/15 20:22:22 - Steps for validation: [1]
+
+2025/10/15 20:22:24 - Start training into output_triposg_mask/scaleup_mp8_nt512
+

@@ -88,11 +88,10 @@ val:
     default_f1: 0.0
 args:
   config: configs/mp8_nt2048.yaml
-  tag: scaleup_mp8_nt512_test
-  output_dir: output_partcrafter
+  tag: scaleup_mp8_nt512
+  output_dir: output_triposg_mask
   resume_from_iter: None
   seed: '0'
-  offline_wandb: 'False'
   max_train_steps: '20'
   max_val_steps: '4'
   num_workers: '32'

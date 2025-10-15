@@ -17,7 +17,7 @@ from packaging import version
 import trimesh
 from PIL import Image
 import numpy as np
-import wandb
+# import wandb
 from tqdm import tqdm
 
 import torch
@@ -108,11 +108,11 @@ def main():
         default=0,
         help="Seed for the PRNG"
     )
-    parser.add_argument(
-        "--offline_wandb",
-        action="store_true",
-        help="Use offline WandB for experiment tracking"
-    )
+    # parser.add_argument(
+    #     "--offline_wandb",
+    #     action="store_true",
+    #     help="Use offline WandB for experiment tracking"
+    # )
 
     parser.add_argument(
         "--max_train_steps",
@@ -556,20 +556,20 @@ def main():
         save_model_architecture(accelerator.unwrap_model(transformer), exp_dir)
 
     # WandB logger
-    if accelerator.is_main_process:
-        if args.offline_wandb:
-            os.environ["WANDB_MODE"] = "offline"
-        wandb.init(
-            project=PROJECT_NAME, name=args.tag,
-            config=exp_params, dir=exp_dir,
-            resume=True
-        )
-        # Wandb artifact for logging experiment information
-        arti_exp_info = wandb.Artifact(args.tag, type="exp_info")
-        arti_exp_info.add_file(os.path.join(exp_dir, "params.yaml"))
-        arti_exp_info.add_file(os.path.join(exp_dir, "model.txt"))
-        arti_exp_info.add_file(os.path.join(exp_dir, "log.txt"))  # only save the log before training
-        wandb.log_artifact(arti_exp_info)
+    # if accelerator.is_main_process:
+    #     if args.offline_wandb:
+    #         os.environ["WANDB_MODE"] = "offline"
+    #     wandb.init(
+    #         project=PROJECT_NAME, name=args.tag,
+    #         config=exp_params, dir=exp_dir,
+    #         resume=True
+    #     )
+    #     # Wandb artifact for logging experiment information
+    #     arti_exp_info = wandb.Artifact(args.tag, type="exp_info")
+    #     arti_exp_info.add_file(os.path.join(exp_dir, "params.yaml"))
+    #     arti_exp_info.add_file(os.path.join(exp_dir, "model.txt"))
+    #     arti_exp_info.add_file(os.path.join(exp_dir, "log.txt"))  # only save the log before training
+    #     wandb.log_artifact(arti_exp_info)
 
     def get_sigmas(timesteps: Tensor, n_dim: int, dtype=torch.float32):
         sigmas = noise_scheduler.sigmas.to(dtype=dtype, device=accelerator.device)
@@ -601,8 +601,8 @@ def main():
         if global_update_step == args.max_train_steps:
             progress_bar.close()
             logger.logger.propagate = True  # propagate to the root logger (console)
-            if accelerator.is_main_process:
-                wandb.finish()
+            # if accelerator.is_main_process:
+            #     wandb.finish()
             logger.info("Training finished!\n")
             return
 
@@ -674,7 +674,6 @@ def main():
                     # thres=0.5 # A placeholder, might need to be an arg
                 )
                 noise_pred_router, l1_loss = noise_output_router_
-                print("l1_loss:", l1_loss)
                 noise_pred_router = noise_pred_router.sample
 
             else:
@@ -699,7 +698,7 @@ def main():
                   
             if i % 3 != 0:
                 data_loss = tF.mse_loss(ori_latents_t, latents_t)
-                loss = configs["train"]["data_loss_weight"] * data_loss + configs["train"]["l1_loss_weight"] * l1_loss
+                loss = data_loss + configs["train"].get("l1_lambda", 0.0001) * l1_loss
 
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
@@ -717,8 +716,8 @@ def main():
                     latents_t = latents_t.detach()
                     ori_latents_t = ori_latents_t.detach()
 
-                    running_data_loss += (configs["train"]["data_loss_weight"] * data_loss).item()
-                    running_l1_loss += (configs["train"]["l1_loss_weight"] * l1_loss).item()
+                    running_data_loss += data_loss.item()
+                    running_l1_loss += (configs["train"].get("l1_lambda", 0.0001) * l1_loss).item()
                 log_steps += 1
 
         transformer.reset()
@@ -758,16 +757,17 @@ def main():
                 or global_update_step % updated_steps_per_epoch == 0 # last step of an epoch
             ):  
                 if accelerator.is_main_process:
-                    wandb.log({
-                        "training/loss": logs["loss"],
-                        "training/data_loss": logs["data_loss"],
-                        "training/l1_loss": logs["l1_loss"],
-                        "training/lr": logs["lr"],
-                    }, step=global_update_step)
-                    if args.use_ema:
-                        wandb.log({
-                            "training/ema": logs["ema"]
-                        }, step=global_update_step)
+                    pass
+                    # wandb.log({
+                    #     "training/loss": logs["loss"],
+                    #     "training/data_loss": logs["data_loss"],
+                    #     "training/l1_loss": logs["l1_loss"],
+                    #     "training/lr": logs["lr"],
+                    # }, step=global_update_step)
+                    # if args.use_ema:
+                    #     wandb.log({
+                    #         "training/ema": logs["ema"]
+                    #     }, step=global_update_step)
             
             # Save checkpoint
             if (
@@ -1000,19 +1000,19 @@ def log_validation(
                     return_type='pil', 
                 )
                 image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{key}.png"))
-                wandb.log({f"validation/{key}": wandb.Image(image_grid)}, step=global_step)
+                # wandb.log({f"validation/{key}": wandb.Image(image_grid)}, step=global_step)
             else: # assuming pred_rendered_images or pred_rendered_normals
                 image_grids = make_grid_for_images_or_videos(
                     value, 
                     nrow=configs['val']['nrow'],
                     return_type='ndarray',
                 )
-                wandb.log({
-                    f"validation/{key}": wandb.Video(
-                        image_grids, 
-                        fps=configs['val']['rendering']['fps'], 
-                        format="gif"
-                )}, step=global_step)
+                # wandb.log({
+                #     f"validation/{key}": wandb.Video(
+                #         image_grids, 
+                #         fps=configs['val']['rendering']['fps'], 
+                #         format="gif"
+                # )}, step=global_step)
                 image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
                 export_renderings(
                     image_grids, 
@@ -1021,7 +1021,8 @@ def log_validation(
                 )
 
         for k, v in metrics_dictlist.items():
-            wandb.log({f"validation/{k}": torch.tensor(v).mean().item()}, step=global_step)
+            pass
+            # wandb.log({f"validation/{k}": torch.tensor(v).mean().item()}, step=global_step)
 
 if __name__ == "__main__":
     main()

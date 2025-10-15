@@ -1880,3 +1880,98 @@ Mixed precision type: fp16
 2025/10/15 19:35:18 - f_scores: ['0.9939']
 2025/10/15 19:40:13 - [000002 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.4054
 2025/10/15 19:44:50 - [000003 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.5613
+2025/10/15 19:49:28 - [000004 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.6464
+2025/10/15 19:54:06 - [000005 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.7009
+2025/10/15 19:58:43 - [000006 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.7392
+2025/10/15 20:03:21 - [000007 / 000020] loss: 0.0032, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.7676
+2025/10/15 20:07:52 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 20:07:52 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 20:08:12 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 20:08:12 - Initializing the model...
+2025/10/15 20:08:13 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 20:08:21 - Number of trainable parameters: 3150
+
+2025/10/15 20:08:21 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 20:08:21 - Number of trainable parameters: 3150
+
+2025/10/15 20:08:23 - Total batch size: [16]
+2025/10/15 20:08:23 - Learning rate: [0.0001]
+2025/10/15 20:08:23 - Gradient Accumulation steps: [4]
+2025/10/15 20:08:23 - Total epochs: [10]
+2025/10/15 20:08:23 - Total steps: [20]
+2025/10/15 20:08:23 - Steps for updating per epoch: [2]
+2025/10/15 20:08:23 - Steps for validation: [1]
+
+2025/10/15 20:08:27 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
+2025/10/15 20:13:06 - [000001 / 000020] loss: 0.0031, data_loss: 0.0000, l1_loss: 0.0031, lr: 0.00e+00, ema: 0.0000
+2025/10/15 20:13:55 - Validation [00/04] chamfer_distance: 0.0640, f_score: 1.0000
+2025/10/15 20:13:55 - chamfer_distances: ['0.0640']
+2025/10/15 20:13:55 - f_scores: ['1.0000']
+2025/10/15 20:14:38 - Validation [01/04] chamfer_distance: 0.0397, f_score: 1.0000
+2025/10/15 20:14:38 - chamfer_distances: ['0.0397']
+2025/10/15 20:14:38 - f_scores: ['1.0000']
+2025/10/15 20:15:24 - Validation [02/04] chamfer_distance: 0.0445, f_score: 1.0000
+2025/10/15 20:15:24 - chamfer_distances: ['0.0445']
+2025/10/15 20:15:24 - f_scores: ['1.0000']
+2025/10/15 20:16:09 - Validation [03/04] chamfer_distance: 0.0497, f_score: 0.9939
+2025/10/15 20:16:09 - chamfer_distances: ['0.0497']
+2025/10/15 20:16:09 - f_scores: ['0.9939']
+2025/10/15 20:17:14 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 20:17:14 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 20:26:36 - Accelerator state:
+Distributed environment: DistributedType.NO
+Num processes: 1
+Process index: 0
+Local process index: 0
+Device: cuda
+
+Mixed precision type: fp16
+
+
+2025/10/15 20:26:36 - You have chosen to seed([0]) the experiment [scaleup_mp8_nt512_test]
+
+2025/10/15 20:26:57 - Loaded [25] training samples and [1] validation samples
+
+2025/10/15 20:26:57 - Initializing the model...
+2025/10/15 20:26:57 - Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [/workspace/luoyajing/3d_pruning/TripoSG/pretrained_weights/TripoSG]
+
+2025/10/15 20:27:05 - Number of trainable parameters: 3150
+
+2025/10/15 20:27:05 - Initializing the optimizer and learning rate scheduler...
+
+2025/10/15 20:27:05 - Number of trainable parameters: 3150
+
+2025/10/15 20:27:07 - Total batch size: [16]
+2025/10/15 20:27:07 - Learning rate: [0.0001]
+2025/10/15 20:27:07 - Gradient Accumulation steps: [4]
+2025/10/15 20:27:07 - Total epochs: [10]
+2025/10/15 20:27:07 - Total steps: [20]
+2025/10/15 20:27:07 - Steps for updating per epoch: [2]
+2025/10/15 20:27:07 - Steps for validation: [1]
+
+2025/10/15 20:27:12 - Start training into output_partcrafter/scaleup_mp8_nt512_test
+
