@@ -1,7 +1,25 @@
+'''
+can safely train the model and save the checkpoints, support 3 modes of reuse features
+but 
+(1) sometimes failed, AttributeError: 'NoneType' object has no attribute 'astype' for File "/data1/luoyajing/3d_pruning/TripoSG/triposg/pipelines/pipeline_triposg.py", line 318
+the l1 loss will stop to decrease after 10 steps
+this is due to the parameters clamp in line param.clamp_(-5, 5)
+(2) the log validation is not correct, which does not activate the router mask
+(3) the training results is poor
+'''
+
+
 import warnings
 warnings.filterwarnings("ignore")  # ignore all warnings
 import diffusers.utils.logging as diffusion_logging
 diffusion_logging.set_verbosity_error()  # ignore diffusers warnings
+
+import os
+import sys
+from pathlib import Path
+project_root = Path(__file__).resolve().parents[3]
+sys.path.append(str(project_root))
+print(str(project_root))
 
 from TripoSG.triposg.utils.typing_utils import *
 
@@ -20,32 +38,40 @@ from tqdm import tqdm
 
 import torch
 import torch.nn.functional as tF
+from torch.nn.parallel import DistributedDataParallel
 import accelerate
 from accelerate import Accelerator
 from accelerate.logging import get_logger as get_accelerate_logger
 from accelerate import DataLoaderConfiguration, DeepSpeedPlugin
+from accelerate.optimizer import AcceleratedOptimizer
+from accelerate.data_loader import DataLoaderShard
+from accelerate.utils import DistributedDataParallelKwargs, GradientAccumulationPlugin
+from accelerate.scheduler import AcceleratedScheduler
 from diffusers.training_utils import (
     compute_density_for_timestep_sampling,
     compute_loss_weighting_for_sd3
 )
 
+
 from transformers import (
     BitImageProcessor,
     Dinov2Model,
 )
-from src.schedulers import RectifiedFlowScheduler
-from src.models.autoencoders import TripoSGVAEModel
-from src.models.transformers import PartCrafterDiTModel
-from src.pipelines.pipeline_partcrafter import PartCrafterPipeline
+from TripoSG.triposg.schedulers import RectifiedFlowScheduler
+from TripoSG.triposg.models.autoencoders import TripoSGVAEModel
+from TripoSG.triposg.models.transformers.triposg_transformer_mask import (
+    TripoSGDiTModel,
+)
+from TripoSG.triposg.pipelines.pipeline_triposg import TripoSGPipeline, retrieve_timesteps
 
-from src.datasets import (
-    ObjaversePartDataset, 
-    BatchedObjaversePartDataset, 
+from TripoSG.triposg.datasets import (
+    ObjaverseMaskDataset,
+    BatchedObjaverseMaskDataset,
     MultiEpochsDataLoader, 
     yield_forever
 )
-from TripoSG.triposg.utils.data_utils import get_colored_mesh_composition
-from src.utils.train_utils import (
+
+from TripoSG.triposg.utils.train_utils import (
     MyEMAModel, 
     get_configs,
     get_optimizer,
@@ -53,16 +79,16 @@ from src.utils.train_utils import (
     save_experiment_params,
     save_model_architecture,
 )
-from src.utils.render_utils import (
+from TripoSG.triposg.utils.render_utils import (
     render_views_around_mesh, 
     render_normal_views_around_mesh, 
     make_grid_for_images_or_videos,
     export_renderings
 )
-from src.utils.metric_utils import compute_cd_and_f_score_in_training
+from TripoSG.triposg.utils.metric_utils import compute_cd_and_f_score_in_training
 
 def main():
-    PROJECT_NAME = "PartCrafter"
+    PROJECT_NAME = "TripoSG_4090"
 
     parser = argparse.ArgumentParser(
         description="Train a diffusion model for 3D object generation",
@@ -159,6 +185,13 @@ def main():
     )
 
     parser.add_argument(
+        "--guidance_scale",
+        type=float,
+        default=7.0,
+        help="CFG scale used for training"
+    )
+
+    parser.add_argument(
         "--val_guidance_scales",
         type=list,
         nargs="+",
@@ -188,13 +221,19 @@ def main():
         "--load_pretrained_model",
         type=str,
         default=None,
-        help="Tag of a pretrained PartCrafterDiTModel in this project"
+        help="Tag of a pretrained TripoSGDiTModel in this project"
     )
     parser.add_argument(
         "--load_pretrained_model_ckpt",
         type=int,
         default=-1,
-        help="Iteration of the pretrained PartCrafterDiTModel checkpoint"
+        help="Iteration of the pretrained TripoSGDiTModel checkpoint"
+    )
+    parser.add_argument(
+        "--num_inference_steps",
+        type=int,
+        default=50,
+        help="The number of inference steps. This is used to generate the timestep map for the router.",
     )
 
     # Parse the arguments
@@ -247,6 +286,7 @@ def main():
         deepspeed_plugin = None
 
     # Initialize the accelerator
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(
         project_dir=exp_dir,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -254,6 +294,7 @@ def main():
         split_batches=False,  # batch size per GPU
         dataloader_config=DataLoaderConfiguration(non_blocking=args.pin_memory),
         deepspeed_plugin=deepspeed_plugin,
+        kwargs_handlers=[ddp_kwargs],
     )
     logger.info(f"Accelerator state:\n{accelerator.state}\n")
 
@@ -266,14 +307,14 @@ def main():
     if args.allow_tf32:
         torch.backends.cuda.matmul.allow_tf32 = True
 
-    train_dataset = BatchedObjaversePartDataset(
+    train_dataset = BatchedObjaverseMaskDataset(
         configs=configs,
         batch_size=configs["train"]["batch_size_per_gpu"],
         is_main_process=accelerator.is_main_process,
         shuffle=True,
         training=True,
     )
-    val_dataset = ObjaversePartDataset(
+    val_dataset = ObjaverseMaskDataset(
         configs=configs,
         training=False,
     )
@@ -326,75 +367,38 @@ def main():
         subfolder="image_encoder_dinov2"
     )
 
-    enable_part_embedding = configs["model"]["transformer"].get("enable_part_embedding", True)
-    enable_local_cross_attn = configs["model"]["transformer"].get("enable_local_cross_attn", True)
-    enable_global_cross_attn = configs["model"]["transformer"].get("enable_global_cross_attn", True)
-    global_attn_block_ids = configs["model"]["transformer"].get("global_attn_block_ids", None)
-    if global_attn_block_ids is not None:
-        global_attn_block_ids = list(global_attn_block_ids)
-    global_attn_block_id_range = configs["model"]["transformer"].get("global_attn_block_id_range", None)
-    if global_attn_block_id_range is not None:
-        global_attn_block_id_range = list(global_attn_block_id_range)
-    if args.from_scratch:
-        logger.info(f"Initialize PartCrafterDiTModel from scratch\n")
-        transformer = PartCrafterDiTModel.from_config(
-            os.path.join(
-                configs["model"]["pretrained_model_name_or_path"],
-                "transformer"
-            ), 
-            enable_part_embedding=enable_part_embedding,
-            enable_local_cross_attn=enable_local_cross_attn,
-            enable_global_cross_attn=enable_global_cross_attn,
-            global_attn_block_ids=global_attn_block_ids,
-            global_attn_block_id_range=global_attn_block_id_range,
-        )
-    elif args.load_pretrained_model is None:
-        logger.info(f"Load pretrained TripoSGDiTModel to initialize PartCrafterDiTModel from [{configs['model']['pretrained_model_name_or_path']}]\n")
-        transformer, loading_info = PartCrafterDiTModel.from_pretrained(
-            configs["model"]["pretrained_model_name_or_path"],
-            subfolder="transformer",
-            low_cpu_mem_usage=False, 
-            output_loading_info=True, 
-            enable_part_embedding=enable_part_embedding,
-            enable_local_cross_attn=enable_local_cross_attn,
-            enable_global_cross_attn=enable_global_cross_attn,
-            global_attn_block_ids=global_attn_block_ids,
-            global_attn_block_id_range=global_attn_block_id_range,
-        )
-    else:
-        logger.info(f"Load PartCrafterDiTModel EMA checkpoint from [{args.load_pretrained_model}] iteration [{args.load_pretrained_model_ckpt:06d}]\n")
-        path = os.path.join(
-            args.output_dir,
-            args.load_pretrained_model, 
-            "checkpoints", 
-            f"{args.load_pretrained_model_ckpt:06d}"
-        )
-        transformer, loading_info = PartCrafterDiTModel.from_pretrained(
-            path, 
-            subfolder="transformer_ema",
-            low_cpu_mem_usage=False, 
-            output_loading_info=True, 
-            enable_part_embedding=enable_part_embedding,
-            enable_local_cross_attn=enable_local_cross_attn,
-            enable_global_cross_attn=enable_global_cross_attn,
-            global_attn_block_ids=global_attn_block_ids,
-            global_attn_block_id_range=global_attn_block_id_range,
-        )
-    if not args.from_scratch:
-        for v in loading_info.values():
-            if v and len(v) > 0:
-                logger.info(f"Loading info of PartCrafterDiTModel: {loading_info}\n")
-                break
+    logger.info(f"Load pretrained TripoSGDiTModel to initialize TripoSGDiTModel from [{configs['model']['pretrained_model_name_or_path']}]\n")
+    transformer, loading_info = TripoSGDiTModel.from_pretrained(
+        configs["model"]["pretrained_model_name_or_path"],
+        subfolder="transformer",
+        low_cpu_mem_usage=False, 
+        output_loading_info=True, )
+
+    for v in loading_info.values():
+        if v and len(v) > 0:
+            logger.info(f"Loading info of TripoSGDiTModel: {loading_info}\n")
+            break
 
     noise_scheduler = RectifiedFlowScheduler.from_pretrained(
         configs["model"]["pretrained_model_name_or_path"],
         subfolder="scheduler"
     )
+    
+    timesteps, num_inference_steps = retrieve_timesteps(
+            noise_scheduler, num_inference_steps=args.num_inference_steps, device=accelerator.device, timesteps=None
+        )
+    timestep_map = noise_scheduler.timesteps.tolist()
+
+    # print(f"timestep_map: {timestep_map}")
+    # Freeze all parameters except routers
+    transformer.requires_grad_(False)
+    transformer.eval()
+    transformer.add_router(args.num_inference_steps, timestep_map)
 
     if args.use_ema:
         ema_transformer = MyEMAModel(
             transformer.parameters(),
-            model_cls=PartCrafterDiTModel,
+            model_cls=TripoSGDiTModel,
             model_config=transformer.config,
             **configs["train"]["ema_kwargs"]
         )
@@ -405,9 +409,15 @@ def main():
     vae.eval()
     image_encoder_dinov2.eval()
 
+    
+    for name, param in transformer.named_parameters():
+        if "routers" in name:
+            param.requires_grad = True
+
     trainable_modules = configs["train"].get("trainable_modules", None)
     if trainable_modules is None:
-        transformer.requires_grad_(True)
+        pass
+        # transformer.requires_grad_(True)
     else:
         trainable_module_names = []
         transformer.requires_grad_(False)
@@ -418,9 +428,12 @@ def main():
                         params.requires_grad = True
                     trainable_module_names.append(name)
         logger.info(f"Trainable parameter names: {trainable_module_names}\n")
-
+    # the number of parameters that need to be trained
+    num_trainable_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
+    logger.info(f"Number of trainable parameters: {num_trainable_parameters}\n")
+    
     # transformer.enable_xformers_memory_efficient_attention()  # use `tF.scaled_dot_product_attention` instead
-
+    
     # `accelerate` 0.16.0 will have better support for customized saving
     if version.parse(accelerate.__version__) >= version.parse("0.16.0"):
         # Create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
@@ -438,7 +451,7 @@ def main():
 
         def load_model_hook(models, input_dir):
             if args.use_ema:
-                load_model = MyEMAModel.from_pretrained(os.path.join(input_dir, "transformer_ema"), PartCrafterDiTModel)
+                load_model = MyEMAModel.from_pretrained(os.path.join(input_dir, "transformer_ema"), TripoSGDiTModel)
                 ema_transformer.load_state_dict(load_model.state_dict())
                 ema_transformer.to(accelerator.device)
                 del load_model
@@ -448,7 +461,7 @@ def main():
                 model = models.pop()
 
                 # Load diffusers style into model
-                load_model = PartCrafterDiTModel.from_pretrained(input_dir, subfolder="transformer")
+                load_model = TripoSGDiTModel.from_pretrained(input_dir, subfolder="transformer")
                 model.register_to_config(**load_model.config)
 
                 model.load_state_dict(load_model.state_dict())
@@ -462,47 +475,32 @@ def main():
 
     # Initialize the optimizer and learning rate scheduler
     logger.info("Initializing the optimizer and learning rate scheduler...\n")
-    name_lr_mult = configs["train"].get("name_lr_mult", None)
-    lr_mult = configs["train"].get("lr_mult", 1.0)
-    params, params_lr_mult, names_lr_mult = [], [], []
-    for name, param in transformer.named_parameters():
-        if name_lr_mult is not None:
-            for k in name_lr_mult.split(","):
-                if k in name:
-                    params_lr_mult.append(param)
-                    names_lr_mult.append(name)
-            if name not in names_lr_mult:
-                params.append(param)
-        else:
-            params.append(param)
+    
+    # Get trainable parameters
+    params = [p for p in transformer.parameters() if p.requires_grad]
+    # compute the number of parameters that need to be trained
+    num_trainable_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
+    logger.info(f"Number of trainable parameters: {num_trainable_parameters}\n")
+    
     optimizer = get_optimizer(
         params=[
-            {"params": params, "lr": configs["optimizer"]["lr"]},
-            {"params": params_lr_mult, "lr": configs["optimizer"]["lr"] * lr_mult}
+            {"params": params, "lr": configs["optimizer"]["lr"]}
         ],
         **configs["optimizer"]
     )
-    if name_lr_mult is not None:
-        logger.info(f"Learning rate x [{lr_mult}] parameter names: {names_lr_mult}\n")
 
-    configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * math.ceil(
-        len(train_loader) // accelerator.num_processes / args.gradient_accumulation_steps)  # only account updated steps
-    configs["lr_scheduler"]["total_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
-    configs["lr_scheduler"]["total_steps"] //= accelerator.num_processes  # reset for multi-gpu
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] //= accelerator.num_processes  # reset for multi-gpu
+    # updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
+    # configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * updated_steps_per_epoch
+    # lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
 
     # Prepare everything with `accelerator`
-    transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader = accelerator.prepare(
-        transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader
+    transformer, optimizer, train_loader, val_loader, random_val_loader = accelerator.prepare(
+        transformer, optimizer, train_loader, val_loader, random_val_loader
     )
     # Set classes explicitly for everything
     transformer: DistributedDataParallel
     optimizer: AcceleratedOptimizer
-    lr_scheduler: AcceleratedScheduler
+    # lr_scheduler: AcceleratedScheduler
     train_loader: DataLoaderShard
     val_loader: DataLoaderShard
     random_val_loader: DataLoaderShard
@@ -524,10 +522,10 @@ def main():
 
     # Training configs after distribution and accumulation setup
     updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
-    total_updated_steps = configs["lr_scheduler"]["total_steps"]
+    total_updated_steps = configs["train"]["epochs"] * updated_steps_per_epoch
     if args.max_train_steps is None:
         args.max_train_steps = total_updated_steps
-    assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
+    # assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
     if accelerator.num_processes > 1 and accelerator.is_main_process:
         print()
     accelerator.wait_for_everyone()
@@ -586,6 +584,7 @@ def main():
         disable=not accelerator.is_main_process
     )
     for batch in yield_forever(train_loader):
+        batch_size = batch["images"].shape[0]
 
         if global_update_step == args.max_train_steps:
             progress_bar.close()
@@ -594,103 +593,135 @@ def main():
             return
 
         transformer.train()
+        accelerator.unwrap_model(transformer).reset()
 
-        with accelerator.accumulate(transformer):
-            
-            images = batch["images"] # [N, H, W, 3]
-            with torch.no_grad():
-                images = feature_extractor_dinov2(images=images, return_tensors="pt").pixel_values
-            images = images.to(device=accelerator.device, dtype=weight_dtype)
-            with torch.no_grad():
-                image_embeds = image_encoder_dinov2(images).last_hidden_state
-            negative_image_embeds = torch.zeros_like(image_embeds)
+        # prepare image embeddings
+        images = batch["images"] # [N, H, W, 3]
+        with torch.no_grad():
+            images = feature_extractor_dinov2(images=images, return_tensors="pt").pixel_values
+        images = images.to(device=accelerator.device, dtype=weight_dtype)
+        with torch.no_grad():
+            image_embeds = image_encoder_dinov2(images).last_hidden_state
 
-            part_surfaces = batch["part_surfaces"] # [N, P, 6]
-            part_surfaces = part_surfaces.to(device=accelerator.device, dtype=weight_dtype)
+        negative_image_embeds = torch.zeros_like(image_embeds)
+        image_embeds = torch.cat([image_embeds, negative_image_embeds], 0)
+        
+        # set noise_scheduler
+        noise_scheduler._step_index = None
+        timesteps_for_loop = noise_scheduler.timesteps
 
-            num_parts = batch["num_parts"] # [M, ] The shape of num_parts is not fixed
-            num_objects = num_parts.shape[0] # M
+        # Prepare latent variables
+        num_channels_latents = accelerator.unwrap_model(transformer).config.in_channels
+        num_tokens = configs["model"]["vae"]["num_tokens"]
+        shape = (batch_size, num_tokens, num_channels_latents)
+        
+        latents_t = torch.randn(shape, device=accelerator.device)
+        ori_latents_t = latents_t.clone()
+        
+        # prepare training loss
+        running_data_loss, running_l1_loss = 0.0, 0.0
+        log_steps = 0
+        
+        for i, t_step in enumerate(timesteps_for_loop):
+            # setup classifier-free guidance
+            latents_t_model_input = torch.cat([latents_t] * 2, 0)
+            ori_latents_t_model_input = torch.cat([ori_latents_t] * 2, 0)
+        
+            with accelerator.accumulate(transformer):
+                t = t_step.expand(ori_latents_t_model_input.shape[0])
 
-            with torch.no_grad():
-                latents = vae.encode(
-                    part_surfaces, 
-                    **configs["model"]["vae"]
-                ).latent_dist.sample()
+                with torch.no_grad():
+                    noise_pred = transformer(
+                        hidden_states=ori_latents_t_model_input,
+                        timestep=t,
+                        encoder_hidden_states=image_embeds,
+                    ).sample
+                    
+                    # cfg
+                    noise_pred_uncond, noise_pred_image = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + args.guidance_scale * (
+                        noise_pred_image - noise_pred_uncond
+                    )
 
-            noise = torch.randn_like(latents)
-            # For weighting schemes where we sample timesteps non-uniformly
-            u = compute_density_for_timestep_sampling(
-                weighting_scheme=configs["train"]["weighting_scheme"],
-                batch_size=num_objects,
-                logit_mean=configs["train"]["logit_mean"],
-                logit_std=configs["train"]["logit_std"],
-                mode_scale=configs["train"]["mode_scale"],
-            )
-            indices = (u * noise_scheduler.config.num_train_timesteps).long()
-            timesteps = noise_scheduler.timesteps[indices].to(accelerator.device) # [M, ]
-            # Repeat the timesteps for each part
-            timesteps = timesteps.repeat_interleave(num_parts) # [N, ]
+                    # compute the previous noisy sample x_t -> x_{t-1}
+                    # print('noise_scheduler._step_index for ori_latents_t:', noise_scheduler._step_index)
+                    current_step_index = noise_scheduler._step_index
+                    ori_latents_t = noise_scheduler.step(noise_pred, t_step, ori_latents_t, return_dict=False)[0]
+                    noise_scheduler._step_index = current_step_index
+                    
+            if i % 3 != 0:
+                transformer.train() # use the drop out
+                noise_output_router_ = transformer(
+                    hidden_states=latents_t_model_input,
+                    timestep=t,
+                    encoder_hidden_states=image_embeds,
+                    model_train=True,
+                    activate_router = True,
+                    # thres=0.5 # A placeholder, might need to be an arg
+                )
+                noise_pred_router, l1_loss = noise_output_router_
+                # print("l1_loss:", l1_loss)
+                noise_pred_router = noise_pred_router.sample
 
-            sigmas = get_sigmas(timesteps, len(latents.shape), weight_dtype)
-            latent_model_input = noisy_latents = (1. - sigmas) * latents + sigmas * noise
-
-            if configs["train"]["cfg_dropout_prob"] > 0:
-                # We use the same dropout mask for the same part
-                dropout_mask = torch.rand(num_objects, device=accelerator.device) < configs["train"]["cfg_dropout_prob"] # [M, ]
-                dropout_mask = dropout_mask.repeat_interleave(num_parts) # [N, ]
-                if dropout_mask.any():
-                    image_embeds[dropout_mask] = negative_image_embeds[dropout_mask]
-
-            model_pred = transformer(
-                hidden_states=latent_model_input,
-                timestep=timesteps,
-                encoder_hidden_states=image_embeds, 
-                attention_kwargs={"num_parts": num_parts}
-            ).sample
-
-            if configs["train"]["training_objective"] == "x0":  # Section 5 of https://arxiv.org/abs/2206.00364
-                model_pred = model_pred * (-sigmas) + noisy_latents  # predicted x_0
-                target = latents
-            elif configs["train"]["training_objective"] == 'v':  # flow matching
-                target = noise - latents
-            elif configs["train"]["training_objective"] == '-v':  # reverse flow matching
-                # The training objective for TripoSG is the reverse of the flow matching objective. 
-                # It uses "different directions", i.e., the negative velocity. 
-                # This is probably a mistake in engineering, not very harmful. 
-                # In TripoSG's rectified flow scheduler, prev_sample = sample + (sigma - sigma_next) * model_output
-                # See TripoSG's scheduler https://github.com/VAST-AI-Research/TripoSG/blob/main/triposg/schedulers/scheduling_rectified_flow.py#L296
-                # While in diffusers's flow matching scheduler, prev_sample = sample + (sigma_next - sigma) * model_output
-                # See https://github.com/huggingface/diffusers/blob/main/src/diffusers/schedulers/scheduling_flow_match_euler_discrete.py#L454
-                target = latents - noise
             else:
-                raise ValueError(f"Unknown training objective [{configs['train']['training_objective']}]")
-
-            # For these weighting schemes use a uniform timestep sampling, so post-weight the loss
-            weighting = compute_loss_weighting_for_sd3(
-                configs["train"]["weighting_scheme"],
-                sigmas
+                with torch.no_grad():
+                    noise_pred_router = transformer(
+                        hidden_states=latents_t_model_input,
+                        timestep=t,
+                        encoder_hidden_states=image_embeds,
+                        model_train=False,
+                        activate_router = False,
+                        # thres=0.5 # A placeholder, might need to be an arg
+                    ).sample
+            
+            # cfg
+            noise_pred_router_uncond, noise_pred_router_image = noise_pred_router.chunk(2)
+            noise_pred_router = noise_pred_router_uncond + args.guidance_scale * (
+                noise_pred_router_image - noise_pred_router_uncond
             )
 
-            loss = weighting * tF.mse_loss(model_pred.float(), target.float(), reduction="none")
-            loss = loss.mean(dim=list(range(1, len(loss.shape))))
+            # Now, for the original latents, we do one step with the router
+            latents_t = noise_scheduler.step(noise_pred_router, t_step, latents_t, return_dict=False)[0]
+                  
+            if i % 3 != 0:
+                data_loss = tF.mse_loss(ori_latents_t, latents_t)
+                loss = configs["train"]["data_loss_weight"] * data_loss + configs["train"]["l1_loss_weight"] * l1_loss
 
-            # Backpropagate
-            accelerator.backward(loss.mean())
-            if accelerator.sync_gradients:
-                accelerator.clip_grad_norm_(transformer.parameters(), args.max_grad_norm)
+                accelerator.backward(loss)
+                if accelerator.sync_gradients:
+                    accelerator.clip_grad_norm_(transformer.parameters(), args.max_grad_norm)
+                
+                optimizer.step()
+                optimizer.zero_grad()
+                
+                with torch.no_grad():
+                    for name, param in transformer.named_parameters():
+                        if "routers" in name:
+                            param.clamp_(-5, 5)
 
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
+                    # Detach latents to break the computation graph for the next iteration
+                    latents_t = latents_t.detach()
+                    ori_latents_t = ori_latents_t.detach()
 
+                    running_data_loss += (configs["train"]["data_loss_weight"] * data_loss).item()
+                    running_l1_loss += (configs["train"]["l1_loss_weight"] * l1_loss).item()
+                log_steps += 1
+
+        accelerator.unwrap_model(transformer).reset()
+        
         # Checks if the accelerator has performed an optimization step behind the scenes
         if accelerator.sync_gradients:
             # Gather the losses across all processes for logging (if we use distributed training)
-            loss = accelerator.gather(loss.detach()).mean()
+            
+            avg_data_loss = running_data_loss / log_steps
+            avg_l1_loss = running_l1_loss / log_steps
+            total_loss = avg_data_loss + avg_l1_loss
 
             logs = {
-                "loss": loss.item(),
-                "lr": lr_scheduler.get_last_lr()[0]
+                "loss": total_loss,
+                "data_loss": avg_data_loss,
+                "l1_loss": avg_l1_loss,
+                "lr": optimizer.param_groups[0]["lr"]
             }
             if args.use_ema:
                 ema_transformer.step(transformer.parameters())
@@ -702,7 +733,7 @@ def main():
 
             logger.info(
                 f"[{global_update_step:06d} / {total_updated_steps:06d}] " +
-                f"loss: {logs['loss']:.4f}, lr: {logs['lr']:.2e}" +
+                f"loss: {logs['loss']:.4f}, data_loss: {logs['data_loss']:.4f}, l1_loss: {logs['l1_loss']:.4f}, lr: {logs['lr']:.2e}" +
                 f", ema: {logs['ema']:.4f}" if args.use_ema else ""
             )
 
@@ -725,11 +756,9 @@ def main():
 
             # Evaluate on the validation set
             if args.max_val_steps > 0 and (
-                (global_update_step % configs["train"]["early_eval_freq"] == 0 and global_update_step < configs["train"]["early_eval"])  # 1. more frequently at the beginning
-                or global_update_step % configs["train"]["eval_freq"] == 0  # 2. every `eval_freq` steps
-                or global_update_step % (configs["train"]["eval_freq_epoch"] * updated_steps_per_epoch) == 0  # 3. every `eval_freq_epoch` epochs
-                or global_update_step == total_updated_steps # 4. last step of an epoch
-                or global_update_step == 1 # 5. first step
+                global_update_step % configs["train"]["eval_freq"] == 0
+                or global_update_step == total_updated_steps
+                or global_update_step == 1
             ):  
 
                 # Use EMA parameters for evaluation
@@ -771,7 +800,7 @@ def log_validation(
         subfolder="scheduler"
     )
 
-    pipeline = PartCrafterPipeline(
+    pipeline = TripoSGPipeline(
         vae=vae,
         transformer=accelerator.unwrap_model(transformer),
         scheduler=val_noise_scheduler,
@@ -812,26 +841,25 @@ def log_validation(
         if len(images.shape) == 5:
             images = images[0] # (1, N, H, W, 3) -> (N, H, W, 3)
         images = [Image.fromarray(image) for image in images.cpu().numpy()]
-        part_surfaces = batch["part_surfaces"].cpu().numpy()
-        if len(part_surfaces.shape) == 4:
-            part_surfaces = part_surfaces[0] # (1, N, P, 6) -> (N, P, 6)
+        surfaces = batch["surfaces"].cpu().numpy()
+        if len(surfaces.shape) == 4:
+            surfaces = surfaces[0] # (1, N, P, 6) -> (N, P, 6)
 
         N = len(images)
 
         val_progress_bar.set_postfix(
-            {"num_parts": N}
+            {"num_objects": N}
         )
 
         with torch.autocast("cuda", torch.float16):
             for guidance_scale in sorted(args.val_guidance_scales):
-                pred_part_meshes = pipeline(
+                pred_meshes = pipeline(
                     images, 
                     num_inference_steps=configs['val']['num_inference_steps'],
                     num_tokens=configs['model']['vae']['num_tokens'],
                     guidance_scale=guidance_scale, 
-                    attention_kwargs={"num_parts": N},
                     generator=generator,
-                    max_num_expanded_coords=configs['val']['max_num_expanded_coords'],
+                    # max_num_expanded_coords=configs['val']['max_num_expanded_coords'],
                     use_flash_decoder=configs['val']['use_flash_decoder'],
                 ).meshes
 
@@ -842,21 +870,23 @@ def log_validation(
                     rendered_images_list, rendered_normals_list = [], []
                     # 1. save the gt image
                     images[0].save(os.path.join(local_eval_dir, f"{val_step:04d}.png"))
-                    # 2. save the generated part meshes
-                    for n in range(N):
-                        if pred_part_meshes[n] is None:
-                            # If the generated mesh is None (decoing error), use a dummy mesh
-                            pred_part_meshes[n] = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                        pred_part_meshes[n].export(os.path.join(local_eval_dir, f"{val_step:04d}_{n:02d}.glb"))
+                    # 2. randomly save the generated meshes
+                    import random
+                    n = random.randint(0, N - 1)
+                    
+                    if pred_meshes[n] is None:
+                        # If the generated mesh is None (decoing error), use a dummy mesh
+                        pred_meshes[n] = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
+                    pred_meshes[n].export(os.path.join(local_eval_dir, f"{val_step:04d}_{n:02d}.glb"))
                     # 3. render the generated mesh and save the rendered images
-                    pred_mesh = get_colored_mesh_composition(pred_part_meshes)
+                    
                     rendered_images: List[Image.Image] = render_views_around_mesh(
-                        pred_mesh, 
+                        pred_meshes[n], 
                         num_views=configs['val']['rendering']['num_views'],
                         radius=configs['val']['rendering']['radius'],
                     )
                     rendered_normals: List[Image.Image] = render_normal_views_around_mesh(
-                        pred_mesh,
+                        pred_meshes[n],
                         num_views=configs['val']['rendering']['num_views'],
                         radius=configs['val']['rendering']['radius'],
                     )
@@ -879,52 +909,48 @@ def log_validation(
 
                 ################################ Compute generation metrics ################################
 
-                parts_chamfer_distances, parts_f_scores = [], []
+                chamfer_distances, f_scores = [], []
 
                 for n in range(N):
-                    # gt_part_surface = part_surfaces[n]
-                    # pred_part_mesh = pred_part_meshes[n]
-                    # if pred_part_mesh is None:
-                    #     # If the generated mesh is None (decoing error), use a dummy mesh
-                    #     pred_part_mesh = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                    # part_cd, part_f = compute_cd_and_f_score_in_training(
-                    #     gt_part_surface, pred_part_mesh,
-                    #     num_samples=configs['val']['metric']['cd_num_samples'],
-                    #     threshold=configs['val']['metric']['f1_score_threshold'],
-                    #     metric=configs['val']['metric']['cd_metric']
-                    # )
-                    # # avoid nan
-                    # part_cd = configs['val']['metric']['default_cd'] if np.isnan(part_cd) else part_cd
-                    # part_f = configs['val']['metric']['default_f1'] if np.isnan(part_f) else part_f
-                    # parts_chamfer_distances.append(part_cd)
-                    # parts_f_scores.append(part_f)
+                    gt_surface = surfaces[n]
+                    pred_mesh = pred_meshes[n]
+                    if pred_mesh is None:
+                        # If the generated mesh is None (decoing error), use a dummy mesh
+                        pred_mesh = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
+                    cd, f_score = compute_cd_and_f_score_in_training(
+                        gt_surface, pred_mesh,
+                        num_samples=configs['val']['metric']['cd_num_samples'],
+                        threshold=configs['val']['metric']['f1_score_threshold'],
+                        metric=configs['val']['metric']['cd_metric']
+                    )
+                    # avoid nan
+                    cd = configs['val']['metric']['default_cd'] if np.isnan(cd) else cd
+                    f_score = configs['val']['metric']['default_f1'] if np.isnan(f_score) else f_score
+                    chamfer_distances.append(cd)
+                    f_scores.append(f_score)
 
-                    # TODO: Fix this
-                    # Disable chamfer distance and F1 score for now
-                    parts_chamfer_distances.append(0.0)
-                    parts_f_scores.append(0.0)
 
-                parts_chamfer_distances = torch.tensor(parts_chamfer_distances, device=accelerator.device)
-                parts_f_scores = torch.tensor(parts_f_scores, device=accelerator.device)
+                chamfer_distances = torch.tensor(chamfer_distances, device=accelerator.device)
+                f_scores = torch.tensor(f_scores, device=accelerator.device)
 
-                metrics_dictlist[f"parts_chamfer_distance_cfg{guidance_scale:.1f}"].append(parts_chamfer_distances.mean())
-                metrics_dictlist[f"parts_f_score_cfg{guidance_scale:.1f}"].append(parts_f_scores.mean())
+                metrics_dictlist[f"chamfer_distance_cfg{guidance_scale:.1f}"].append(chamfer_distances.mean())
+                metrics_dictlist[f"f_score_cfg{guidance_scale:.1f}"].append(f_scores.mean())
             
         # Only log the last (biggest) cfg metrics in the progress bar
         val_logs = {
-            "parts_chamfer_distance": parts_chamfer_distances.mean().item(),
-            "parts_f_score": parts_f_scores.mean().item(),
+            "chamfer_distance": chamfer_distances.mean().item(),
+            "f_score": f_scores.mean().item(),
         }
         val_progress_bar.set_postfix(**val_logs)
         logger.info(
             f"Validation [{val_step:02d}/{args.max_val_steps:02d}] " +
-            f"parts_chamfer_distance: {val_logs['parts_chamfer_distance']:.4f}, parts_f_score: {val_logs['parts_f_score']:.4f}"
+            f"chamfer_distance: {val_logs['chamfer_distance']:.4f}, f_score: {val_logs['f_score']:.4f}"
         )
         logger.info(
-            f"parts_chamfer_distances: {[f'{x:.4f}' for x in parts_chamfer_distances.tolist()]}"
+            f"chamfer_distances: {[f'{x:.4f}' for x in chamfer_distances.tolist()]}"
         )
         logger.info(
-            f"parts_f_scores: {[f'{x:.4f}' for x in parts_f_scores.tolist()]}"
+            f"f_scores: {[f'{x:.4f}' for x in f_scores.tolist()]}"
         )
         val_step += 1
         val_progress_bar.update(1)
@@ -956,3 +982,22 @@ def log_validation(
 
 if __name__ == "__main__":
     main()
+    
+    
+'''
+export NCCL_P2P_DISABLE=1 # for 4090
+export NCCL_SOCKET_NTHREADS=1 # for 4090
+
+python TripoSG/scripts/train/train_triposg_mask.py \
+    --config configs/mp8_nt2048.yaml --use_ema --gradient_accumulation_steps 4 \
+        --output_dir output_partcrafter --tag scaleup_mp8_nt512_test 
+          
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=0,1,2,3,5\
+    accelerate launch --multi_gpu --num_processes 5 \
+    TripoSG/scripts/train/train_triposg_mask.py \
+    --config configs/mp8_nt2048.yaml \
+    --use_ema \
+    --gradient_accumulation_steps 4 \
+    --output_dir output_partcrafter \
+    --tag scaleup_mp8_nt512_test 
+'''

@@ -3,7 +3,7 @@ warnings.filterwarnings("ignore")  # ignore all warnings
 import diffusers.utils.logging as diffusion_logging
 diffusion_logging.set_verbosity_error()  # ignore diffusers warnings
 import sys
-sys.path.append("/workspace/luoyajing/3d_pruning")
+sys.path.append("/data1/luoyajing/3d_pruning")
 from TripoSG.triposg.utils.typing_utils import *
 
 import os
@@ -17,7 +17,6 @@ from packaging import version
 import trimesh
 from PIL import Image
 import numpy as np
-import wandb
 from tqdm import tqdm
 
 import torch
@@ -105,11 +104,6 @@ def main():
         type=int,
         default=0,
         help="Seed for the PRNG"
-    )
-    parser.add_argument(
-        "--offline_wandb",
-        action="store_true",
-        help="Use offline WandB for experiment tracking"
     )
 
     parser.add_argument(
@@ -550,22 +544,6 @@ def main():
         exp_params = save_experiment_params(args, configs, exp_dir)
         save_model_architecture(accelerator.unwrap_model(transformer), exp_dir)
 
-    # WandB logger
-    if accelerator.is_main_process:
-        if args.offline_wandb:
-            os.environ["WANDB_MODE"] = "offline"
-        wandb.init(
-            project=PROJECT_NAME, name=args.tag,
-            config=exp_params, dir=exp_dir,
-            resume=True
-        )
-        # Wandb artifact for logging experiment information
-        arti_exp_info = wandb.Artifact(args.tag, type="exp_info")
-        arti_exp_info.add_file(os.path.join(exp_dir, "params.yaml"))
-        arti_exp_info.add_file(os.path.join(exp_dir, "model.txt"))
-        arti_exp_info.add_file(os.path.join(exp_dir, "log.txt"))  # only save the log before training
-        wandb.log_artifact(arti_exp_info)
-
     def get_sigmas(timesteps: Tensor, n_dim: int, dtype=torch.float32):
         sigmas = noise_scheduler.sigmas.to(dtype=dtype, device=accelerator.device)
         schedule_timesteps = noise_scheduler.timesteps.to(accelerator.device)
@@ -595,8 +573,6 @@ def main():
         if global_update_step == args.max_train_steps:
             progress_bar.close()
             logger.logger.propagate = True  # propagate to the root logger (console)
-            if accelerator.is_main_process:
-                wandb.finish()
             logger.info("Training finished!\n")
             return
 
@@ -707,22 +683,6 @@ def main():
                 f"loss: {logs['loss']:.4f}, lr: {logs['lr']:.2e}" +
                 f", ema: {logs['ema']:.4f}" if args.use_ema else ""
             )
-
-            # Log the training progress
-            if (
-                global_update_step % configs["train"]["log_freq"] == 0 
-                or global_update_step == 1
-                or global_update_step % updated_steps_per_epoch == 0 # last step of an epoch
-            ):  
-                if accelerator.is_main_process:
-                    wandb.log({
-                        "training/loss": logs["loss"],
-                        "training/lr": logs["lr"],
-                    }, step=global_update_step)
-                    if args.use_ema:
-                        wandb.log({
-                            "training/ema": logs["ema"]
-                        }, step=global_update_step)
 
             # Save checkpoint
             if (
@@ -955,19 +915,12 @@ def log_validation(
                     return_type='pil', 
                 )
                 image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{key}.png"))
-                wandb.log({f"validation/{key}": wandb.Image(image_grid)}, step=global_step)
             else: # assuming pred_rendered_images or pred_rendered_normals
                 image_grids = make_grid_for_images_or_videos(
                     value, 
                     nrow=configs['val']['nrow'],
                     return_type='ndarray',
                 )
-                wandb.log({
-                    f"validation/{key}": wandb.Video(
-                        image_grids, 
-                        fps=configs['val']['rendering']['fps'], 
-                        format="gif"
-                )}, step=global_step)
                 image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
                 export_renderings(
                     image_grids, 
@@ -975,8 +928,6 @@ def log_validation(
                     fps=configs['val']['rendering']['fps']
                 )
 
-        for k, v in metrics_dictlist.items():
-            wandb.log({f"validation/{k}": torch.tensor(v).mean().item()}, step=global_step)
 
 if __name__ == "__main__":
     main()

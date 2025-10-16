@@ -157,7 +157,7 @@ def hierarchical_extract_geometry(geometric_func: Callable,
         indexing="ij"
     )
     
-    print(f'step 1 query num: {xyz_samples.shape[0]}')
+    # print(f'step 1 query num: {xyz_samples.shape[0]}')
     grid_logits = geometric_func(xyz_samples.unsqueeze(0)).to(torch.float16).view(grid_size[0], grid_size[1], grid_size[2])
     # print(f'step 1 grid_logits shape: {grid_logits.shape}')
     for i in range(hierarchical_octree_depth - dense_octree_depth):
@@ -170,7 +170,7 @@ def hierarchical_extract_geometry(geometric_func: Callable,
         band_threshold = 1.0
         edge_coords = find_candidates_band(grid_logits, band_threshold)
         expanded_coords = expand_edge_region_fast(edge_coords, grid_size=int(grid_size/2)).to(torch.float16)
-        print(f'step {i+2} query num: {len(expanded_coords)}')
+        # print(f'step {i+2} query num: {len(expanded_coords)}')
         expanded_coords_norm = (expanded_coords - normalize_offset) * (abs(bounds[0]) / normalize_offset)
 
         all_logits = None
@@ -189,7 +189,7 @@ def hierarchical_extract_geometry(geometric_func: Callable,
         torch.cuda.empty_cache()
     mesh_v_f = []
     try:
-        print("final grids shape = ", grid_logits.shape)
+        # print("final grids shape = ", grid_logits.shape)
         vertices, faces, normals, _ = measure.marching_cubes(grid_logits.float().cpu().numpy(), 0, method="lewiner")
         vertices = vertices / (2**hierarchical_octree_depth) * bbox_size.cpu().numpy() + bbox_min.cpu().numpy()
         mesh_v_f = (vertices.astype(np.float32), np.ascontiguousarray(faces))

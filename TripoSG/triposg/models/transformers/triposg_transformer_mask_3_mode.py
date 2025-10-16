@@ -125,6 +125,34 @@ from .modeling_outputs import Transformer1DModelOutput
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
 
+class STE(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, i, thres=0.5):
+        return (i > thres).float()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output, None
+
+
+class Router(nn.Module):
+    def __init__(self, num_choises):
+        super().__init__()
+        self.num_choises = num_choises
+        # 原代码
+        self.prob = torch.nn.Parameter(torch.randn(num_choises), requires_grad=True)
+        # print("Router initialized with num_choises =", num_choises)
+        # print("The initial prob shape of router is:", self.prob.shape)
+
+        # 新代码
+        # self.prob = torch.nn.Parameter(torch.rand(num_choises)*0.5+0.5, requires_grad=True) #
+
+        self.activation = torch.nn.Sigmoid()
+
+    def forward(self, x=None):  # Any input will be ignored, only for solving the issue of https://github.com/pytorch/pytorch/issues/37814
+        return self.activation(self.prob)
+
+
 @maybe_allow_in_graph
 class DiTBlock(nn.Module):
     r"""
@@ -294,10 +322,13 @@ class DiTBlock(nn.Module):
         image_rotary_emb: Optional[torch.Tensor] = None,
         skip: Optional[torch.Tensor] = None,
         attention_kwargs: Optional[Dict[str, Any]] = None,
-        reuse_self_att: Optional[torch.Tensor] = None,
-        reuse_cross_att: Optional[torch.Tensor] = None,
-        reuse_mlp: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, Tuple[Optional[torch.Tensor], Optional[torch.Tensor], torch.Tensor]]:
+        reuse_att=None,
+        reuse_cross_att=None,
+        reuse_mlp=None,
+        reuse_att_weight=0,
+        reuse_cross_att_weight=0,
+        reuse_mlp_weight=0,
+    ) -> torch.Tensor:
         # Prepare attention kwargs
         attention_kwargs = attention_kwargs.copy() if attention_kwargs is not None else {}
         cross_attention_scale = attention_kwargs.pop("cross_attention_scale", 1.0)
@@ -324,60 +355,62 @@ class DiTBlock(nn.Module):
 
         # 1. Self-Attention
         if self.use_self_attention:
-            if reuse_self_att is None:
-                norm_hidden_states = self.norm1(hidden_states)
-                self_attn_output = self.attn1(
-                    norm_hidden_states,
-                    image_rotary_emb=image_rotary_emb,
-                    **attention_kwargs,
-                )
-            else:
-                self_attn_output = reuse_self_att
+            norm_hidden_states = self.norm1(hidden_states)
+            self_attn_output = self.attn1(
+                norm_hidden_states,
+                image_rotary_emb=image_rotary_emb,
+                **attention_kwargs,
+            )
+            if reuse_att is not None:
+                # print('debug here, the reuse_att is not None')
+                # print('reuse_att_weight:', reuse_att_weight)
+                self_attn_output = reuse_att * reuse_att_weight + self_attn_output * (1 - reuse_att_weight)
             hidden_states = hidden_states + self_attn_output
-        else:
-            self_attn_output = None
 
         # 2. Cross-Attention
-        cross_attn_output = None
         if self.use_cross_attention:
-            if reuse_cross_att is None:
-                if self.use_cross_attention_2:
-                    cross_attn_output = (
-                        self.attn2(
-                            self.norm2(hidden_states),
-                            encoder_hidden_states=encoder_hidden_states,
-                            image_rotary_emb=image_rotary_emb,
-                            **attention_kwargs,
-                        )
-                        * cross_attention_scale
-                        + self.attn2_2(
-                            self.norm2_2(hidden_states),
-                            encoder_hidden_states=encoder_hidden_states_2,
-                            image_rotary_emb=image_rotary_emb,
-                            **attention_kwargs,
-                        )
-                        * cross_attention_2_scale
+            if self.use_cross_attention_2:
+                cross_attn_output = (
+                    self.attn2(
+                        self.norm2(hidden_states),
+                        encoder_hidden_states=encoder_hidden_states,
+                        image_rotary_emb=image_rotary_emb,
+                        **attention_kwargs,
                     )
-                else:
-                    cross_attn_output = (
-                        self.attn2(
-                            self.norm2(hidden_states),
-                            encoder_hidden_states=encoder_hidden_states,
-                            image_rotary_emb=image_rotary_emb,
-                            **attention_kwargs,
-                        )
-                        * cross_attention_scale
+                    * cross_attention_scale
+                    + self.attn2_2(
+                        self.norm2_2(hidden_states),
+                        encoder_hidden_states=encoder_hidden_states_2,
+                        image_rotary_emb=image_rotary_emb,
+                        **attention_kwargs,
                     )
+                    * cross_attention_2_scale
+                )
             else:
-                cross_attn_output = reuse_cross_att
+                cross_attn_output = (
+                    self.attn2(
+                        self.norm2(hidden_states),
+                        encoder_hidden_states=encoder_hidden_states,
+                        image_rotary_emb=image_rotary_emb,
+                        **attention_kwargs,
+                    )
+                    * cross_attention_scale
+                )
+
+            if reuse_cross_att is not None:
+                # print('debug here, the reuse_cross_att is not None')
+                # print('reuse_cross_att_weight:', reuse_cross_att_weight)
+                cross_attn_output = (
+                    reuse_cross_att * reuse_cross_att_weight
+                    + cross_attn_output * (1 - reuse_cross_att_weight)
+                )
             hidden_states = hidden_states + cross_attn_output
 
         # FFN Layer ### TODO: switch norm2 and norm3 in the state dict
-        if reuse_mlp is None:
-            mlp_inputs = self.norm3(hidden_states)
-            ff_output = self.ff(mlp_inputs)
-        else:
-            ff_output = reuse_mlp
+        mlp_inputs = self.norm3(hidden_states)
+        ff_output = self.ff(mlp_inputs)
+        if reuse_mlp is not None:
+            ff_output = reuse_mlp * reuse_mlp_weight + ff_output * (1 - reuse_mlp_weight)
         hidden_states = hidden_states + ff_output
 
         return hidden_states, (self_attn_output, cross_attn_output, ff_output)
@@ -445,7 +478,6 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
         self.num_heads = num_attention_heads
         self.inner_dim = width
         self.mlp_ratio = 4.0
-        self.num_layers = num_layers
 
         time_embed_dim, timestep_input_dim = self._set_time_proj(
             "positional",
@@ -491,11 +523,10 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
 
         self.gradient_checkpointing = False
 
-        self.reset()
+    def reset(self):
+        self.reuse_feature = [None] * self.config.num_layers
 
-    def load_ranking(self, path, num_steps, timestep_map, thres, mlp_mode=True, self_attn_mode=True, cross_attn_mode=True):
-        from TripoSG.triposg.models.transformers.triposg_transformer_mask import Router, STE
-        
+    def add_router(self, num_steps, timestep_map, mlp_mode=False, self_attn_mode=False, cross_attn_mode=False):
         self.mlp_mode = mlp_mode
         self.self_attn_mode = self_attn_mode
         self.cross_attn_mode = cross_attn_mode
@@ -507,59 +538,17 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
             num_choices_per_layer += 1
         if self.mlp_mode:
             num_choices_per_layer += 1
-        
-        self.num_choices_per_layer = num_choices_per_layer
-        self.rank = [None] * num_steps
 
+        self.num_choices_per_layer = num_choices_per_layer
+        
         if self.num_choices_per_layer > 0:
-            num_total_choices = self.num_choices_per_layer * self.num_layers
-            routers = torch.nn.ModuleList([
+            num_total_choices = self.num_choices_per_layer * self.config.num_layers
+            self.routers = torch.nn.ModuleList([
                 Router(num_total_choices) for _ in range(num_steps)
             ])
-            if path is not None:
-                ckpt = torch.load(path, map_location='cpu')['routers']
-                routers.load_state_dict(ckpt)
-            self.timestep_map =  {timestep: i for i, timestep in enumerate(timestep_map)}
-
-            print("routers", routers)
-            
-            act_layer, total_layer = 0, 0
-            act_self_att, act_cross_att, act_mlp = 0, 0, 0
-            for idx, router in enumerate(routers):
-                # This is an example policy, adjust as needed.
-                if idx % 3 != 0: 
-                    self.rank[idx] = STE.apply(router(), thres).nonzero().squeeze(0)
-                    total_layer += num_total_choices
-                    act_layer += len(self.rank[idx])
-                    # log
-                    logger.info(f"Timestep {idx}: Not Reuse: {self.rank[idx].squeeze()}")
-                    # print(f"Timestep {idx}: Not Reuse: {self.rank[idx].squeeze()}")
-
-                    if len(self.rank[idx]) > 0:
-                        component_idx = 0
-                        if self.self_attn_mode:
-                            act_self_att += (torch.remainder(self.rank[idx], self.num_choices_per_layer) == component_idx).sum().item()
-                            component_idx += 1
-                        if self.cross_attn_mode:
-                            act_cross_att += (torch.remainder(self.rank[idx], self.num_choices_per_layer) == component_idx).sum().item()
-                            component_idx += 1
-                        if self.mlp_mode:
-                            act_mlp += (torch.remainder(self.rank[idx], self.num_choices_per_layer) == component_idx).sum().item()
-                            component_idx += 1
-                else:
-                    self.rank[idx] = torch.tensor([], dtype=torch.long)
-
-            print(f"Total Activate Layer: {act_layer}/{total_layer}")
-            
-            num_active_timesteps = num_steps - num_steps // 3
-            total_sa = self.num_layers * num_active_timesteps if self.self_attn_mode else 0
-            total_ca = self.num_layers * num_active_timesteps if self.cross_attn_mode else 0
-            total_mlp = self.num_layers * num_active_timesteps if self.mlp_mode else 0
-            
-            print(f"Total Activate Self-Attention: {act_self_att}/{total_sa}")
-            print(f"Total Activate Cross-Attention: {act_cross_att}/{total_ca}")
-            print(f"Total Activate MLP: {act_mlp}/{total_mlp}")
+            self.timestep_map = {timestep: i for i, timestep in enumerate(timestep_map)}
         else:
+            self.routers = None
             self.timestep_map = {}
 
     def _set_gradient_checkpointing(self, module, value=False):
@@ -721,7 +710,11 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
         image_rotary_emb: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         attention_kwargs: Optional[Dict[str, Any]] = None,
         return_dict: bool = True,
+        thres: Optional[float] = None,
+        activate_router: bool = False,
+        fix_reuse_feature: bool = False,
         ori: bool = False,
+        model_train: bool = False,
     ):
         """
         The [`HunyuanDiT2DModel`] forward method.
@@ -766,98 +759,120 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
         # N + 1 token
         hidden_states = torch.cat([temb, hidden_states], dim=1)
 
-        skips = []
-        if not ori:
-            scalar_timestep = timestep
-            if torch.is_tensor(scalar_timestep):
-                scalar_timestep = scalar_timestep[0].item()
-            
-            router_idx = self.timestep_map[int(scalar_timestep)]
-            
-            if self.cur_timestep % 3 == 0:
-                self.reuse_feature = [None] * len(self.reuse_feature)
-
-            for layer, block in enumerate(self.blocks):
-                skip = None if layer <= self.config.num_layers // 2 else skips.pop()
+        if activate_router and not ori and self.routers is not None:
+            # print("--------------------------activate_router--------------------------")
+            if isinstance(timestep, torch.Tensor):
+                ts = timestep[0].item()
+            else:
+                ts = timestep
                 
-                self_att, cross_att, mlp = None, None, None
-                if self.reuse_feature[layer] is not None:
-                    component_idx = 0
+            router_idx = self.timestep_map[ts]
+            scores = self.routers[router_idx]()
+            if thres is None:
+                weights = scores
+            else:
+                weights = STE.apply(scores, thres)
+            router_l1_loss = scores.sum()
+
+        skips = []
+        for layer, block in enumerate(self.blocks):
+            skip = None if layer <= self.config.num_layers // 2 else skips.pop()
+
+            att, cross_att, mlp = None, None, None
+            reuse_att_weight, reuse_cross_att_weight, reuse_mlp_weight = 0, 0, 0
+            # print("--------------------------reuse_feature--------------------------")
+            # print('layer:', layer)
+            # print('self.reuse_feature[layer]:', self.reuse_feature[layer])
+            
+            if not ori:
+                if self.reuse_feature[layer] is not None and activate_router:
+                    # print('debug here, the reuse_feature is not None')
+                    weight_idx_offset = layer * self.num_choices_per_layer
+                    current_choice_idx = 0
                     if self.self_attn_mode:
-                        if (layer * self.num_choices_per_layer + component_idx) not in self.rank[router_idx]:
-                            self_att = self.reuse_feature[layer][0]
-                        component_idx += 1
-                    
+                        att = self.reuse_feature[layer][0]
+                        reuse_att_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
+
                     if self.cross_attn_mode:
-                        if (layer * self.num_choices_per_layer + component_idx) not in self.rank[router_idx]:
-                            cross_att = self.reuse_feature[layer][1]
-                        component_idx += 1
+                        cross_att = self.reuse_feature[layer][1]
+                        reuse_cross_att_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
 
                     if self.mlp_mode:
-                        if (layer * self.num_choices_per_layer + component_idx) not in self.rank[router_idx]:
-                            mlp = self.reuse_feature[layer][2]
-                        component_idx += 1
-                
-                if self.training and self.gradient_checkpointing:
-                    raise NotImplementedError("Gradient checkpointing is not supported with dynamic execution.")
+                        mlp = self.reuse_feature[layer][2]
+                        reuse_mlp_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
+
+            if self.training and self.gradient_checkpointing:
+
+                def create_custom_forward(module):
+                    def custom_forward(*inputs):
+                        # return module(*inputs)
+                        outputs = module(*inputs)
+                        return outputs[0], outputs[1][0], outputs[1][1], outputs[1][2]
+
+                    return custom_forward
+
+                ckpt_kwargs: Dict[str, Any] = (
+                    {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
+                )
+                # This part is tricky to get right with checkpointing and tuple outputs.
+                # Assuming checkpoint can handle tuple outputs and we only need to checkpoint hidden_states.
+                # The logic from router_models.py does not use checkpointing.
+                # A simple way is to just not support checkpointing with router for now.
+                # For a more complex solution, one might need to wrap the block call.
+                # The provided code has a complex checkpointing implementation. Let me try to adapt it.
+                # The custom_forward needs to handle the tuple output.
+                # The block now returns (hidden_states, (attn_output, ff_output)).
+                # torch.utils.checkpoint.checkpoint only passes gradients for the first output.
+                # This will likely break.
+                # The original code has some logic for this.
+                # It seems I need to unpack and repack.
+                hidden_states, self_attn_feat, cross_attn_feat, mlp_feat = torch.utils.checkpoint.checkpoint(
+                    create_custom_forward(block),
+                    hidden_states,
+                    encoder_hidden_states,
+                    encoder_hidden_states_2,
+                    temb,
+                    image_rotary_emb,
+                    skip,
+                    attention_kwargs,
+                    att,
+                    cross_att,
+                    mlp,
+                    reuse_att_weight,
+                    reuse_cross_att_weight,
+                    reuse_mlp_weight,
+                    **ckpt_kwargs,
+                )
+                reuse_feature = (self_attn_feat, cross_attn_feat, mlp_feat)
+            else:
+                hidden_states, reuse_feature = block(
+                    hidden_states,
+                    encoder_hidden_states=encoder_hidden_states,
+                    encoder_hidden_states_2=encoder_hidden_states_2,
+                    temb=temb,
+                    image_rotary_emb=image_rotary_emb,
+                    skip=skip,
+                    attention_kwargs=attention_kwargs,
+                    reuse_att=att,
+                    reuse_cross_att=cross_att,
+                    reuse_mlp=mlp,
+                    reuse_att_weight=reuse_att_weight,
+                    reuse_cross_att_weight=reuse_cross_att_weight,
+                    reuse_mlp_weight=reuse_mlp_weight,
+                )  # (N, L, D)
+
+            if not fix_reuse_feature and not ori:
+                if not model_train:
+                    self.reuse_feature[layer] = reuse_feature
                 else:
-                    hidden_states, reuse_feature = block(
-                        hidden_states,
-                        encoder_hidden_states=encoder_hidden_states,
-                        encoder_hidden_states_2=encoder_hidden_states_2,
-                        temb=temb,
-                        image_rotary_emb=image_rotary_emb,
-                        skip=skip,
-                        attention_kwargs=attention_kwargs,
-                        reuse_self_att=self_att,
-                        reuse_cross_att=cross_att,
-                        reuse_mlp=mlp,
-                    )
-                self.reuse_feature[layer] = reuse_feature
+                    self.reuse_feature[layer] = tuple(feature.clone().detach() for feature in reuse_feature)
 
-                if layer < self.config.num_layers // 2:
-                    skips.append(hidden_states)
-            
-            self.cur_timestep -= 1
-        else:
-            for layer, block in enumerate(self.blocks):
-                skip = None if layer <= self.config.num_layers // 2 else skips.pop()
 
-                if self.training and self.gradient_checkpointing:
-
-                    def create_custom_forward(module):
-                        def custom_forward(*inputs):
-                            return module(*inputs)
-
-                        return custom_forward
-
-                    ckpt_kwargs: Dict[str, Any] = (
-                        {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
-                    )
-                    hidden_states = torch.utils.checkpoint.checkpoint(
-                        create_custom_forward(block),
-                        hidden_states,
-                        encoder_hidden_states,
-                        encoder_hidden_states_2,
-                        temb,
-                        image_rotary_emb,
-                        skip,
-                        attention_kwargs,
-                        **ckpt_kwargs,
-                    )
-                else:
-                    hidden_states = block(
-                        hidden_states,
-                        encoder_hidden_states=encoder_hidden_states,
-                        encoder_hidden_states_2=encoder_hidden_states_2,
-                        temb=temb,
-                        image_rotary_emb=image_rotary_emb,
-                        skip=skip,
-                        attention_kwargs=attention_kwargs,
-                    )  # (N, L, D)
-
-                if layer < self.config.num_layers // 2:
-                    skips.append(hidden_states)
+            if layer < self.config.num_layers // 2:
+                skips.append(hidden_states)
 
         # final layer
         hidden_states = self.norm_out(hidden_states)
@@ -868,10 +883,15 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
             # remove `lora_scale` from each PEFT layer
             unscale_lora_layers(self, lora_scale)
 
-        if not return_dict:
-            return (hidden_states,)
+        if activate_router and not ori:
+            if not return_dict:
+                return (hidden_states, router_l1_loss)
+            return Transformer1DModelOutput(sample=hidden_states), router_l1_loss
+        else:
+            if not return_dict:
+                return (hidden_states,)
 
-        return Transformer1DModelOutput(sample=hidden_states)
+            return Transformer1DModelOutput(sample=hidden_states)
 
     # Copied from diffusers.models.unets.unet_3d_condition.UNet3DConditionModel.enable_forward_chunking
     def enable_forward_chunking(

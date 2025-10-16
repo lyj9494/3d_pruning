@@ -526,13 +526,30 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
     def reset(self):
         self.reuse_feature = [None] * self.config.num_layers
 
-    def add_router(self, num_steps, timestep_map):
-        self.routers = torch.nn.ModuleList([
-            Router(3 * self.config.num_layers) for _ in range(num_steps)
-        ])
-        # print(self.routers)  # num_t * 2*num_depth, 2 for both attention and mlp
+    def add_router(self, num_steps, timestep_map, mlp_mode=False, self_attn_mode=False, cross_attn_mode=False):
+        self.mlp_mode = mlp_mode
+        self.self_attn_mode = self_attn_mode
+        self.cross_attn_mode = cross_attn_mode
 
-        self.timestep_map = {timestep: i for i, timestep in enumerate(timestep_map)}
+        num_choices_per_layer = 0
+        if self.self_attn_mode:
+            num_choices_per_layer += 1
+        if self.cross_attn_mode:
+            num_choices_per_layer += 1
+        if self.mlp_mode:
+            num_choices_per_layer += 1
+
+        self.num_choices_per_layer = num_choices_per_layer
+        
+        if self.num_choices_per_layer > 0:
+            num_total_choices = self.num_choices_per_layer * self.config.num_layers
+            self.routers = torch.nn.ModuleList([
+                Router(num_total_choices) for _ in range(num_steps)
+            ])
+            self.timestep_map = {timestep: i for i, timestep in enumerate(timestep_map)}
+        else:
+            self.routers = None
+            self.timestep_map = {}
 
     def _set_gradient_checkpointing(self, module, value=False):
         self.gradient_checkpointing = value
@@ -742,7 +759,7 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
         # N + 1 token
         hidden_states = torch.cat([temb, hidden_states], dim=1)
 
-        if activate_router and not ori:
+        if activate_router and not ori and self.routers is not None:
             # print("--------------------------activate_router--------------------------")
             if isinstance(timestep, torch.Tensor):
                 ts = timestep[0].item()
@@ -770,14 +787,22 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
             if not ori:
                 if self.reuse_feature[layer] is not None and activate_router:
                     # print('debug here, the reuse_feature is not None')
-                    att = self.reuse_feature[layer][0]
-                    reuse_att_weight = 1 - weights[layer * 3]
+                    weight_idx_offset = layer * self.num_choices_per_layer
+                    current_choice_idx = 0
+                    if self.self_attn_mode:
+                        att = self.reuse_feature[layer][0]
+                        reuse_att_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
 
-                    cross_att = self.reuse_feature[layer][1]
-                    reuse_cross_att_weight = 1 - weights[layer * 3 + 1]
+                    if self.cross_attn_mode:
+                        cross_att = self.reuse_feature[layer][1]
+                        reuse_cross_att_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
 
-                    mlp = self.reuse_feature[layer][2]
-                    reuse_mlp_weight = 1 - weights[layer * 3 + 2]
+                    if self.mlp_mode:
+                        mlp = self.reuse_feature[layer][2]
+                        reuse_mlp_weight = 1 - weights[weight_idx_offset + current_choice_idx]
+                        current_choice_idx += 1
 
             if self.training and self.gradient_checkpointing:
 

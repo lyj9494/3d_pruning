@@ -22,4 +22,6 @@ DiT/test_results
 *.pt
 
 output
+output_partcrafter
 TripoSG/pretrained_weights
+output_mask

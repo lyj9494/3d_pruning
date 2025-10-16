@@ -39,7 +39,7 @@ def create_dataset_json(dataset_path, output_path):
     print(f"Successfully created JSON file at '{output_path}'")
 
 if __name__ == "__main__":
-    demo_dataset_path = '/workspace/luoyajing/3d_pruning/demo_dataset'
-    output_json_path = '/workspace/luoyajing/3d_pruning/demo_dataset.json'
+    demo_dataset_path = '/data1/luoyajing/3d_pruning/demo_dataset'
+    output_json_path = '/data1/luoyajing/3d_pruning/demo_dataset.json'
     create_dataset_json(demo_dataset_path, output_json_path)
 

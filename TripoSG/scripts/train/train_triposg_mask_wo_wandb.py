@@ -2,11 +2,17 @@ import warnings
 warnings.filterwarnings("ignore")  # ignore all warnings
 import diffusers.utils.logging as diffusion_logging
 diffusion_logging.set_verbosity_error()  # ignore diffusers warnings
-import sys
-sys.path.append("/workspace/luoyajing/3d_pruning")
-from TripoSG.triposg.utils.typing_utils import *
 
 import os
+import sys
+from pathlib import Path
+project_root = Path(__file__).resolve().parents[3]
+sys.path.append(str(project_root))
+print(str(project_root))
+
+from TripoSG.triposg.utils.typing_utils import *
+
+
 import argparse
 import logging
 import time
@@ -17,7 +23,6 @@ from packaging import version
 import trimesh
 from PIL import Image
 import numpy as np
-# import wandb
 from tqdm import tqdm
 
 import torch
@@ -36,14 +41,13 @@ from diffusers.training_utils import (
     compute_loss_weighting_for_sd3
 )
 
-
 from transformers import (
     BitImageProcessor,
     Dinov2Model,
 )
 from TripoSG.triposg.schedulers import RectifiedFlowScheduler
 from TripoSG.triposg.models.autoencoders import TripoSGVAEModel
-from TripoSG.triposg.models.transformers.triposg_transformer_router import (
+from TripoSG.triposg.models.transformers.triposg_transformer_mask import (
     TripoSGDiTModel,
 )
 from TripoSG.triposg.pipelines.pipeline_triposg import TripoSGPipeline, retrieve_timesteps
@@ -70,6 +74,10 @@ from TripoSG.triposg.utils.render_utils import (
     export_renderings
 )
 from TripoSG.triposg.utils.metric_utils import compute_cd_and_f_score_in_training
+
+os.environ["NCCL_P2P_DISABLE"] = "1"
+os.environ["NCCL_SOCKET_NTHREADS"] = "1"
+os.environ["LD_PRELOAD"] = "/usr/lib/x86_64-linux-gnu/libstdc++.so.6"
 
 def main():
     PROJECT_NAME = "TripoSG"
@@ -108,11 +116,6 @@ def main():
         default=0,
         help="Seed for the PRNG"
     )
-    # parser.add_argument(
-    #     "--offline_wandb",
-    #     action="store_true",
-    #     help="Use offline WandB for experiment tracking"
-    # )
 
     parser.add_argument(
         "--max_train_steps",
@@ -275,6 +278,7 @@ def main():
         deepspeed_plugin = None
 
     # Initialize the accelerator
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(
         project_dir=exp_dir,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -282,6 +286,7 @@ def main():
         split_batches=False,  # batch size per GPU
         dataloader_config=DataLoaderConfiguration(non_blocking=args.pin_memory),
         deepspeed_plugin=deepspeed_plugin,
+        kwargs_handlers=[ddp_kwargs],
     )
     logger.info(f"Accelerator state:\n{accelerator.state}\n")
 
@@ -462,12 +467,9 @@ def main():
 
     # Initialize the optimizer and learning rate scheduler
     logger.info("Initializing the optimizer and learning rate scheduler...\n")
-    name_lr_mult = configs["train"].get("name_lr_mult", None)
-    lr_mult = configs["train"].get("lr_mult", 1.0)
-    params, params_lr_mult, names_lr_mult = [], [], []
     
-    # Only train routers
-    params = [param for name, param in transformer.named_parameters() if "routers" in name]
+    # Get trainable parameters
+    params = [p for p in transformer.parameters() if p.requires_grad]
     # compute the number of parameters that need to be trained
     num_trainable_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
     logger.info(f"Number of trainable parameters: {num_trainable_parameters}\n")
@@ -478,25 +480,20 @@ def main():
         ],
         **configs["optimizer"]
     )
-
-    configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * math.ceil(
-        len(train_loader) // accelerator.num_processes / args.gradient_accumulation_steps)  # only account updated steps
-    configs["lr_scheduler"]["total_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
-    configs["lr_scheduler"]["total_steps"] //= accelerator.num_processes  # reset for multi-gpu
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] //= accelerator.num_processes  # reset for multi-gpu
+    print("optimizer:", optimizer)
+    
+    # updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
+    # configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * updated_steps_per_epoch
+    # lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
 
     # Prepare everything with `accelerator`
-    transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader = accelerator.prepare(
-        transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader
+    transformer, optimizer, train_loader, val_loader, random_val_loader = accelerator.prepare(
+        transformer, optimizer, train_loader, val_loader, random_val_loader
     )
     # Set classes explicitly for everything
     transformer: DistributedDataParallel
     optimizer: AcceleratedOptimizer
-    lr_scheduler: AcceleratedScheduler
+    # lr_scheduler: AcceleratedScheduler
     train_loader: DataLoaderShard
     val_loader: DataLoaderShard
     random_val_loader: DataLoaderShard
@@ -518,10 +515,10 @@ def main():
 
     # Training configs after distribution and accumulation setup
     updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
-    total_updated_steps = configs["lr_scheduler"]["total_steps"]
+    total_updated_steps = configs["train"]["epochs"] * updated_steps_per_epoch
     if args.max_train_steps is None:
         args.max_train_steps = total_updated_steps
-    assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
+    # assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
     if accelerator.num_processes > 1 and accelerator.is_main_process:
         print()
     accelerator.wait_for_everyone()
@@ -555,22 +552,6 @@ def main():
         exp_params = save_experiment_params(args, configs, exp_dir)
         save_model_architecture(accelerator.unwrap_model(transformer), exp_dir)
 
-    # WandB logger
-    # if accelerator.is_main_process:
-    #     if args.offline_wandb:
-    #         os.environ["WANDB_MODE"] = "offline"
-    #     wandb.init(
-    #         project=PROJECT_NAME, name=args.tag,
-    #         config=exp_params, dir=exp_dir,
-    #         resume=True
-    #     )
-    #     # Wandb artifact for logging experiment information
-    #     arti_exp_info = wandb.Artifact(args.tag, type="exp_info")
-    #     arti_exp_info.add_file(os.path.join(exp_dir, "params.yaml"))
-    #     arti_exp_info.add_file(os.path.join(exp_dir, "model.txt"))
-    #     arti_exp_info.add_file(os.path.join(exp_dir, "log.txt"))  # only save the log before training
-    #     wandb.log_artifact(arti_exp_info)
-
     def get_sigmas(timesteps: Tensor, n_dim: int, dtype=torch.float32):
         sigmas = noise_scheduler.sigmas.to(dtype=dtype, device=accelerator.device)
         schedule_timesteps = noise_scheduler.timesteps.to(accelerator.device)
@@ -601,8 +582,6 @@ def main():
         if global_update_step == args.max_train_steps:
             progress_bar.close()
             logger.logger.propagate = True  # propagate to the root logger (console)
-            # if accelerator.is_main_process:
-            #     wandb.finish()
             logger.info("Training finished!\n")
             return
 
@@ -674,6 +653,7 @@ def main():
                     # thres=0.5 # A placeholder, might need to be an arg
                 )
                 noise_pred_router, l1_loss = noise_output_router_
+                print("l1_loss:", l1_loss)
                 noise_pred_router = noise_pred_router.sample
 
             else:
@@ -698,7 +678,7 @@ def main():
                   
             if i % 3 != 0:
                 data_loss = tF.mse_loss(ori_latents_t, latents_t)
-                loss = data_loss + configs["train"].get("l1_lambda", 0.0001) * l1_loss
+                loss = configs["train"]["data_loss_weight"] * data_loss + configs["train"]["l1_loss_weight"] * l1_loss
 
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
@@ -716,11 +696,11 @@ def main():
                     latents_t = latents_t.detach()
                     ori_latents_t = ori_latents_t.detach()
 
-                    running_data_loss += data_loss.item()
-                    running_l1_loss += (configs["train"].get("l1_lambda", 0.0001) * l1_loss).item()
+                    running_data_loss += (configs["train"]["data_loss_weight"] * data_loss).item()
+                    running_l1_loss += (configs["train"]["l1_loss_weight"] * l1_loss).item()
                 log_steps += 1
 
-        transformer.reset()
+        accelerator.unwrap_model(transformer).reset()
         
         # Checks if the accelerator has performed an optimization step behind the scenes
         if accelerator.sync_gradients:
@@ -734,7 +714,7 @@ def main():
                 "loss": total_loss,
                 "data_loss": avg_data_loss,
                 "l1_loss": avg_l1_loss,
-                "lr": lr_scheduler.get_last_lr()[0]
+                "lr": optimizer.param_groups[0]["lr"]
             }
             if args.use_ema:
                 ema_transformer.step(transformer.parameters())
@@ -749,25 +729,6 @@ def main():
                 f"loss: {logs['loss']:.4f}, data_loss: {logs['data_loss']:.4f}, l1_loss: {logs['l1_loss']:.4f}, lr: {logs['lr']:.2e}" +
                 f", ema: {logs['ema']:.4f}" if args.use_ema else ""
             )
-
-            # Log the training progress
-            if (
-                global_update_step % configs["train"]["log_freq"] == 0 
-                or global_update_step == 1
-                or global_update_step % updated_steps_per_epoch == 0 # last step of an epoch
-            ):  
-                if accelerator.is_main_process:
-                    pass
-                    # wandb.log({
-                    #     "training/loss": logs["loss"],
-                    #     "training/data_loss": logs["data_loss"],
-                    #     "training/l1_loss": logs["l1_loss"],
-                    #     "training/lr": logs["lr"],
-                    # }, step=global_update_step)
-                    # if args.use_ema:
-                    #     wandb.log({
-                    #         "training/ema": logs["ema"]
-                    #     }, step=global_update_step)
             
             # Save checkpoint
             if (
@@ -999,43 +960,37 @@ def log_validation(
                     nrow=configs['val']['nrow'],
                     return_type='pil', 
                 )
-                image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{key}.png"))
-                # wandb.log({f"validation/{key}": wandb.Image(image_grid)}, step=global_step)
+                image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{key.replace('/', '_')}.png"))
             else: # assuming pred_rendered_images or pred_rendered_normals
                 image_grids = make_grid_for_images_or_videos(
                     value, 
                     nrow=configs['val']['nrow'],
                     return_type='ndarray',
                 )
-                # wandb.log({
-                #     f"validation/{key}": wandb.Video(
-                #         image_grids, 
-                #         fps=configs['val']['rendering']['fps'], 
-                #         format="gif"
-                # )}, step=global_step)
                 image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
                 export_renderings(
                     image_grids, 
-                    os.path.join(eval_dir, f"{global_step:06d}", f"{key}.gif"), 
+                    os.path.join(eval_dir, f"{global_step:06d}", f"{key.replace('/', '_')}.gif"), 
                     fps=configs['val']['rendering']['fps']
                 )
-
-        for k, v in metrics_dictlist.items():
-            pass
-            # wandb.log({f"validation/{k}": torch.tensor(v).mean().item()}, step=global_step)
 
 if __name__ == "__main__":
     main()
     
     
 '''
-python /workspace/luoyajing/3d_pruning/TripoSG/scripts/train/train_triposg_mask.py \
+export NCCL_P2P_DISABLE=1 # for 4090
+export NCCL_SOCKET_NTHREADS=1 # for 4090
+
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=2\
+    python TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml --use_ema --gradient_accumulation_steps 4 \
         --output_dir output_partcrafter --tag scaleup_mp8_nt512_test 
         
         
-accelerate launch --multi_gpu --num_processes 2 \
-    /workspace/luoyajing/3d_pruning/TripoSG/scripts/train/train_triposg_mask_raw.py \
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=1,2\
+    accelerate launch --multi_gpu --num_processes 2 \
+    TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml \
     --use_ema \
     --gradient_accumulation_steps 4 \

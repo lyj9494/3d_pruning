@@ -2,7 +2,7 @@ import inspect
 import math
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import os,sys
-sys.path.append('/workspace/luoyajing/3d_pruning')
+sys.path.append('/data1/luoyajing/3d_pruning')
 import numpy as np
 import PIL
 import PIL.Image
@@ -194,6 +194,7 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
         hierarchical_octree_depth: int = 9,
         flash_octree_depth: int = 9,
         use_flash_decoder: bool = True,
+        activate_router: bool = False,
         return_dict: bool = True,
     ):
         # 1. Define call parameters
@@ -259,6 +260,8 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
                     timestep,
                     encoder_hidden_states=image_embeds,
                     attention_kwargs=attention_kwargs,
+                    activate_router=activate_router,
+
                     return_dict=False,
                 )[0]
 

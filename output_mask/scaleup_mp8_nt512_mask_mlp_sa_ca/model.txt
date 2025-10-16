@@ -1,5 +1,5 @@
 Number of buffers: 0
-Number of trainable / all parameters: 3150 / 1439559310
+Number of trainable / all parameters: 1439559310 / 1439559310
 
 Model architecture:
 TripoSGDiTModel(

@@ -48,7 +48,7 @@ class ObjaverseMaskDataset(torch.utils.data.Dataset):
         self.image_paths = []
         if self.training:
             for uid in uids:
-                image_path = os.path.join(self.train_data_dir, uid, 'rgb_001.png')
+                image_path = os.path.join(self.train_data_dir, uid, 'rgb_000_front.png')
                 if os.path.exists(image_path):
                     self.image_paths.append(image_path)
         else:
@@ -57,11 +57,14 @@ class ObjaverseMaskDataset(torch.utils.data.Dataset):
                 if os.path.exists(image_path):
                     self.image_paths.append(image_path)
                 
+        
         # TODO: a debug here
         if self.training:
             self.image_paths = self.image_paths[:100]
         else:
             self.image_paths = self.image_paths[:1]
+        '''
+        '''
         
         self.image_size = (512, 512)
 

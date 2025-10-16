@@ -1,5 +1,5 @@
 import os,sys
-sys.path.append('/workspace/luoyajing/3d_pruning')
+sys.path.append('/data1/luoyajing/3d_pruning')
 
 from TripoSG.triposg.utils.typing_utils import *
 

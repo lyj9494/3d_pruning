@@ -1,9 +1,19 @@
+'''
+with log_validation
+'''
+
+
 import warnings
 warnings.filterwarnings("ignore")  # ignore all warnings
 import diffusers.utils.logging as diffusion_logging
 diffusion_logging.set_verbosity_error()  # ignore diffusers warnings
+
+import os
 import sys
-sys.path.append("/workspace/luoyajing/3d_pruning")
+from pathlib import Path
+project_root = Path(__file__).resolve().parents[3]
+sys.path.append(str(project_root))
+
 from TripoSG.triposg.utils.typing_utils import *
 
 import os
@@ -43,7 +53,7 @@ from transformers import (
 )
 from TripoSG.triposg.schedulers import RectifiedFlowScheduler
 from TripoSG.triposg.models.autoencoders import TripoSGVAEModel
-from TripoSG.triposg.models.transformers.triposg_transformer_router import (
+from TripoSG.triposg.models.transformers.triposg_transformer_mask import (
     TripoSGDiTModel,
 )
 from TripoSG.triposg.pipelines.pipeline_triposg import TripoSGPipeline, retrieve_timesteps
@@ -70,9 +80,10 @@ from TripoSG.triposg.utils.render_utils import (
     export_renderings
 )
 from TripoSG.triposg.utils.metric_utils import compute_cd_and_f_score_in_training
+from collections import defaultdict
 
 def main():
-    PROJECT_NAME = "TripoSG"
+    PROJECT_NAME = "TripoSG_4090"
 
     parser = argparse.ArgumentParser(
         description="Train a diffusion model for 3D object generation",
@@ -224,12 +235,33 @@ def main():
         default=50,
         help="The number of inference steps. This is used to generate the timestep map for the router.",
     )
+    
+    parser.add_argument(
+        "--mlp_mode",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Reuse MLP features in the router."
+    )
+    parser.add_argument(
+        "--self_attn_mode",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Reuse self-attention features in the router."
+    )
+    parser.add_argument(
+        "--cross_attn_mode",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Reuse cross-attention features in the router."
+    )
 
     # Parse the arguments
     args, extras = parser.parse_known_args()
     # Parse the config file
     configs = get_configs(args.config, extras)  # change yaml configs by `extras`
-
+    
+    print(f"task mode: mlp: {args.mlp_mode}, self_attn: {args.self_attn_mode}, cross_attn: {args.cross_attn_mode}")
+    
     args.val_guidance_scales = [float(x[0]) if isinstance(x, list) else float(x) for x in args.val_guidance_scales]
     if args.max_val_steps > 0: 
         # If enable validation, the max_val_steps must be a multiple of nrow
@@ -240,8 +272,18 @@ def main():
             args.max_val_steps = (args.max_val_steps // divider + 1) * divider
 
     # Create an experiment directory using the `tag`
+    mode_str = ""
+    if args.mlp_mode:
+        mode_str += "_mlp"
+    if args.self_attn_mode:
+        mode_str += "_sa"
+    if args.cross_attn_mode:
+        mode_str += "_ca"
+        
     if args.tag is None:
         args.tag = time.strftime("%Y%m%d_%H_%M_%S")
+    if mode_str:
+        args.tag += mode_str
     exp_dir = os.path.join(args.output_dir, args.tag)
     ckpt_dir = os.path.join(exp_dir, "checkpoints")
     eval_dir = os.path.join(exp_dir, "evaluations")
@@ -275,6 +317,7 @@ def main():
         deepspeed_plugin = None
 
     # Initialize the accelerator
+    ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
     accelerator = Accelerator(
         project_dir=exp_dir,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -282,6 +325,7 @@ def main():
         split_batches=False,  # batch size per GPU
         dataloader_config=DataLoaderConfiguration(non_blocking=args.pin_memory),
         deepspeed_plugin=deepspeed_plugin,
+        kwargs_handlers=[ddp_kwargs],
     )
     logger.info(f"Accelerator state:\n{accelerator.state}\n")
 
@@ -376,11 +420,14 @@ def main():
         )
     timestep_map = noise_scheduler.timesteps.tolist()
 
-    # print(f"timestep_map: {timestep_map}")
-    # Freeze all parameters except routers
-    transformer.requires_grad_(False)
     transformer.eval()
-    transformer.add_router(args.num_inference_steps, timestep_map)
+    transformer.add_router(
+        args.num_inference_steps, 
+        timestep_map,
+        mlp_mode=args.mlp_mode,
+        self_attn_mode=args.self_attn_mode,
+        cross_attn_mode=args.cross_attn_mode,
+    )
 
     if args.use_ema:
         ema_transformer = MyEMAModel(
@@ -396,81 +443,21 @@ def main():
     vae.eval()
     image_encoder_dinov2.eval()
 
-    
-    for name, param in transformer.named_parameters():
-        if "routers" in name:
-            param.requires_grad = True
-
-    trainable_modules = configs["train"].get("trainable_modules", None)
-    if trainable_modules is None:
-        pass
-        # transformer.requires_grad_(True)
-    else:
-        trainable_module_names = []
-        transformer.requires_grad_(False)
-        for name, module in transformer.named_modules():
-            for module_name in tuple(trainable_modules.split(",")):
-                if module_name in name:
-                    for params in module.parameters():
-                        params.requires_grad = True
-                    trainable_module_names.append(name)
-        logger.info(f"Trainable parameter names: {trainable_module_names}\n")
-    # the number of parameters that need to be trained
-    num_trainable_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
-    logger.info(f"Number of trainable parameters: {num_trainable_parameters}\n")
-    
     # transformer.enable_xformers_memory_efficient_attention()  # use `tF.scaled_dot_product_attention` instead
-
-    # `accelerate` 0.16.0 will have better support for customized saving
-    if version.parse(accelerate.__version__) >= version.parse("0.16.0"):
-        # Create custom saving & loading hooks so that `accelerator.save_state(...)` serializes in a nice format
-        def save_model_hook(models, weights, output_dir):
-            if accelerator.is_main_process:
-                if args.use_ema:
-                    ema_transformer.save_pretrained(os.path.join(output_dir, "transformer_ema"))
-
-                for i, model in enumerate(models):
-                    model.save_pretrained(os.path.join(output_dir, "transformer"))
-
-                    # Make sure to pop weight so that corresponding model is not saved again
-                    if weights:
-                        weights.pop()
-
-        def load_model_hook(models, input_dir):
-            if args.use_ema:
-                load_model = MyEMAModel.from_pretrained(os.path.join(input_dir, "transformer_ema"), TripoSGDiTModel)
-                ema_transformer.load_state_dict(load_model.state_dict())
-                ema_transformer.to(accelerator.device)
-                del load_model
-
-            for _ in range(len(models)):
-                # Pop models so that they are not loaded again
-                model = models.pop()
-
-                # Load diffusers style into model
-                load_model = TripoSGDiTModel.from_pretrained(input_dir, subfolder="transformer")
-                model.register_to_config(**load_model.config)
-
-                model.load_state_dict(load_model.state_dict())
-                del load_model
-
-        accelerator.register_save_state_pre_hook(save_model_hook)
-        accelerator.register_load_state_pre_hook(load_model_hook)
 
     if configs["train"]["grad_checkpoint"]:
         transformer.enable_gradient_checkpointing()
 
     # Initialize the optimizer and learning rate scheduler
     logger.info("Initializing the optimizer and learning rate scheduler...\n")
-    name_lr_mult = configs["train"].get("name_lr_mult", None)
-    lr_mult = configs["train"].get("lr_mult", 1.0)
-    params, params_lr_mult, names_lr_mult = [], [], []
     
-    # Only train routers
+    # Get trainable parameters
     params = [param for name, param in transformer.named_parameters() if "routers" in name]
     # compute the number of parameters that need to be trained
-    num_trainable_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
+    num_trainable_parameters = sum(param.numel() for param in params)
+    num_grad_parameters = sum(p.numel() for p in transformer.parameters() if p.requires_grad)
     logger.info(f"Number of trainable parameters: {num_trainable_parameters}\n")
+    logger.info(f"Number of grad parameters: {num_grad_parameters}\n")
     
     optimizer = get_optimizer(
         params=[
@@ -479,24 +466,18 @@ def main():
         **configs["optimizer"]
     )
 
-    configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * math.ceil(
-        len(train_loader) // accelerator.num_processes / args.gradient_accumulation_steps)  # only account updated steps
-    configs["lr_scheduler"]["total_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] *= accelerator.num_processes  # for lr scheduler setting
-    lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
-    configs["lr_scheduler"]["total_steps"] //= accelerator.num_processes  # reset for multi-gpu
-    if "num_warmup_steps" in configs["lr_scheduler"]:
-        configs["lr_scheduler"]["num_warmup_steps"] //= accelerator.num_processes  # reset for multi-gpu
+    # updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
+    # configs["lr_scheduler"]["total_steps"] = configs["train"]["epochs"] * updated_steps_per_epoch
+    # lr_scheduler = get_lr_scheduler(optimizer=optimizer, **configs["lr_scheduler"])
 
     # Prepare everything with `accelerator`
-    transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader = accelerator.prepare(
-        transformer, optimizer, lr_scheduler, train_loader, val_loader, random_val_loader
+    transformer, optimizer, train_loader, val_loader, random_val_loader = accelerator.prepare(
+        transformer, optimizer, train_loader, val_loader, random_val_loader
     )
     # Set classes explicitly for everything
     transformer: DistributedDataParallel
     optimizer: AcceleratedOptimizer
-    lr_scheduler: AcceleratedScheduler
+    # lr_scheduler: AcceleratedScheduler
     train_loader: DataLoaderShard
     val_loader: DataLoaderShard
     random_val_loader: DataLoaderShard
@@ -518,10 +499,10 @@ def main():
 
     # Training configs after distribution and accumulation setup
     updated_steps_per_epoch = math.ceil(len(train_loader) / args.gradient_accumulation_steps)
-    total_updated_steps = configs["lr_scheduler"]["total_steps"]
+    total_updated_steps = configs["train"]["epochs"] * updated_steps_per_epoch
     if args.max_train_steps is None:
         args.max_train_steps = total_updated_steps
-    assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
+    # assert configs["train"]["epochs"] * updated_steps_per_epoch == total_updated_steps
     if accelerator.num_processes > 1 and accelerator.is_main_process:
         print()
     accelerator.wait_for_everyone()
@@ -537,18 +518,29 @@ def main():
     global_update_step = 0
     if args.resume_from_iter is not None:
         if args.resume_from_iter < 0:
-            args.resume_from_iter = int(sorted(os.listdir(ckpt_dir))[-1])
-        logger.info(f"Load checkpoint from iteration [{args.resume_from_iter}]\n")
-        # Load everything
-        if version.parse(torch.__version__) >= version.parse("2.4.0"):
-            torch.serialization.add_safe_globals([
-                int, list, dict, 
-                defaultdict,
-                Any,
-                DictConfig, ListConfig, Metadata, ContainerMetadata, AnyNode
-            ]) # avoid deserialization error when loading optimizer state
-        accelerator.load_state(os.path.join(ckpt_dir, f"{args.resume_from_iter:06d}"))  # torch < 2.4.0 here for `weights_only=False`
-        global_update_step = int(args.resume_from_iter)
+            # find the latest checkpoint
+            ckpts = [f for f in os.listdir(ckpt_dir) if f.endswith(".pt")]
+            if len(ckpts) == 0:
+                logger.info("No checkpoint found. Training from scratch.")
+                args.resume_from_iter = None
+            else:
+                latest_ckpt = sorted(ckpts, key=lambda x: int(x.split('.')[0]))[-1]
+                args.resume_from_iter = int(latest_ckpt.split('.')[0])
+        
+        if args.resume_from_iter is not None:
+            checkpoint_path = os.path.join(ckpt_dir, f"{args.resume_from_iter:06d}.pt")
+            if os.path.exists(checkpoint_path):
+                logger.info(f"Load checkpoint from [{checkpoint_path}]\n")
+                checkpoint = torch.load(checkpoint_path, map_location="cpu")
+
+                unwrapped_transformer = accelerator.unwrap_model(transformer)
+                unwrapped_transformer.routers.load_state_dict(checkpoint["routers"])
+
+                optimizer.load_state_dict(checkpoint["opt"])
+
+                global_update_step = checkpoint.get("global_step", args.resume_from_iter)
+            else:
+                logger.info(f"Checkpoint [{checkpoint_path}] not found. Training from scratch.")
 
     # Save all experimental parameters and model architecture of this run to a file (args and configs)
     if accelerator.is_main_process:
@@ -628,6 +620,7 @@ def main():
         num_channels_latents = accelerator.unwrap_model(transformer).config.in_channels
         num_tokens = configs["model"]["vae"]["num_tokens"]
         shape = (batch_size, num_tokens, num_channels_latents)
+        print("shape:", shape) # shape: (n, 2048, 64)
         
         latents_t = torch.randn(shape, device=accelerator.device)
         ori_latents_t = latents_t.clone()
@@ -663,7 +656,7 @@ def main():
                     ori_latents_t = noise_scheduler.step(noise_pred, t_step, ori_latents_t, return_dict=False)[0]
                     noise_scheduler._step_index = current_step_index
                     
-            if t[0].item() % 3 != 0: #  t[0].item() % 2 == 0
+            if i % 3 != 0:
                 transformer.train() # use the drop out
                 noise_output_router_ = transformer(
                     hidden_states=latents_t_model_input,
@@ -672,8 +665,10 @@ def main():
                     model_train=True,
                     activate_router = True,
                     # thres=0.5 # A placeholder, might need to be an arg
+
                 )
                 noise_pred_router, l1_loss = noise_output_router_
+                # print("l1_loss:", l1_loss)
                 noise_pred_router = noise_pred_router.sample
 
             else:
@@ -692,17 +687,20 @@ def main():
             noise_pred_router = noise_pred_router_uncond + args.guidance_scale * (
                 noise_pred_router_image - noise_pred_router_uncond
             )
-            
-            # print('noise_scheduler._step_index for latents_t:', noise_scheduler._step_index)
-            
+
             # Now, for the original latents, we do one step with the router
             latents_t = noise_scheduler.step(noise_pred_router, t_step, latents_t, return_dict=False)[0]
                   
             if i % 3 != 0:
+                # print router, 大于0.5为1，小于0.5为0
+                router_sum = 0
+                # print("router:", accelerator.unwrap_model(transformer).routers)
+                for router in accelerator.unwrap_model(transformer).routers:
+                    router_sum += (router.prob > 0.5).sum().item()
+                print("router_sum:", router_sum)
                 
                 data_loss = tF.mse_loss(ori_latents_t, latents_t)
-                print(f"for time step {t_step}, data_loss:", data_loss)
-                loss = data_loss + configs["train"].get("l1_lambda", 0.0001) * l1_loss
+                loss = configs["train"]["data_loss_weight"] * data_loss + configs["train"]["l1_loss_weight"] * l1_loss
 
                 accelerator.backward(loss)
                 if accelerator.sync_gradients:
@@ -720,11 +718,11 @@ def main():
                     latents_t = latents_t.detach()
                     ori_latents_t = ori_latents_t.detach()
 
-                    running_data_loss += data_loss.item()
-                    running_l1_loss += (configs["train"].get("l1_lambda", 0.0001) * l1_loss).item()
+                    running_data_loss += (configs["train"]["data_loss_weight"] * data_loss).item()
+                    running_l1_loss += (configs["train"]["l1_loss_weight"] * l1_loss).item()
                 log_steps += 1
 
-        transformer.reset()
+        accelerator.unwrap_model(transformer).reset()
         
         # Checks if the accelerator has performed an optimization step behind the scenes
         if accelerator.sync_gradients:
@@ -738,7 +736,7 @@ def main():
                 "loss": total_loss,
                 "data_loss": avg_data_loss,
                 "l1_loss": avg_l1_loss,
-                "lr": lr_scheduler.get_last_lr()[0]
+                "lr": optimizer.param_groups[0]["lr"]
             }
             if args.use_ema:
                 ema_transformer.step(transformer.parameters())
@@ -780,22 +778,26 @@ def main():
                 # or global_update_step == 1 # 4. first step
             ): 
 
-                gc.collect()
-                if accelerator.distributed_type == accelerate.utils.DistributedType.DEEPSPEED:
-                    # DeepSpeed requires saving weights on every device; saving weights only on the main process would cause issues
-                    accelerator.save_state(os.path.join(ckpt_dir, f"{global_update_step:06d}"))
-                elif accelerator.is_main_process:
-                    accelerator.save_state(os.path.join(ckpt_dir, f"{global_update_step:06d}"))
-                accelerator.wait_for_everyone()  # ensure all processes have finished saving
+                if accelerator.is_main_process:
+                    unwrapped_transformer = accelerator.unwrap_model(transformer)
+                    checkpoint = {
+                        "routers": unwrapped_transformer.routers.state_dict(),
+                        "opt": optimizer.state_dict(),
+                        "args": args,
+                        "global_step": global_update_step
+                    }
+                    checkpoint_path = os.path.join(ckpt_dir, f"{global_update_step:06d}.pt")
+                    torch.save(checkpoint, checkpoint_path)
+                    logger.info(f"Saved checkpoint to {checkpoint_path}")
+
+                accelerator.wait_for_everyone()
                 gc.collect()
 
             # Evaluate on the validation set
             if args.max_val_steps > 0 and (
-                (global_update_step % configs["train"]["early_eval_freq"] == 0 and global_update_step < configs["train"]["early_eval"])  # 1. more frequently at the beginning
-                or global_update_step % configs["train"]["eval_freq"] == 0  # 2. every `eval_freq` steps
-                or global_update_step % (configs["train"]["eval_freq_epoch"] * updated_steps_per_epoch) == 0  # 3. every `eval_freq_epoch` epochs
-                or global_update_step == total_updated_steps # 4. last step of an epoch
-                or global_update_step == 1 # 5. first step
+                global_update_step % configs["train"]["eval_freq"] == 0
+                or global_update_step == total_updated_steps
+                or global_update_step == 1
             ):  
 
                 # Use EMA parameters for evaluation
@@ -853,194 +855,202 @@ def log_validation(
     else:
         generator = None
         
+    for activate_router_mode in [True, False]:
+        run_prefix = "router_on" if activate_router_mode else "router_off"
+        logger.info(f"Running validation with router mode: {run_prefix}")
 
-    val_progress_bar = tqdm(
-        range(len(dataloader)) if args.max_val_steps is None else range(args.max_val_steps),
-        desc=f"Validation [{global_step:06d}]",
-        ncols=125,
-        disable=not accelerator.is_main_process
-    )
-
-    medias_dictlist, metrics_dictlist = defaultdict(list), defaultdict(list)
-
-    val_dataloder, random_val_dataloader = yield_forever(dataloader), yield_forever(random_dataloader)
-    val_step = 0
-    while val_step < args.max_val_steps:
-
-        if val_step < args.max_val_steps // 2:
-            # fix the first half
-            batch = next(val_dataloder)
-        else:
-            # randomly sample the next batch
-            batch = next(random_val_dataloader)
-
-        images = batch["images"]
-        if len(images.shape) == 5:
-            images = images[0] # (1, N, H, W, 3) -> (N, H, W, 3)
-        images = [Image.fromarray(image) for image in images.cpu().numpy()]
-        surfaces = batch["surfaces"].cpu().numpy()
-        if len(surfaces.shape) == 4:
-            surfaces = surfaces[0] # (1, N, P, 6) -> (N, P, 6)
-
-        N = len(images)
-
-        val_progress_bar.set_postfix(
-            {"num_objects": N}
+        val_progress_bar = tqdm(
+            range(len(dataloader)) if args.max_val_steps is None else range(args.max_val_steps),
+            desc=f"Validation [{global_step:06d} / {run_prefix}]",
+            ncols=125,
+            disable=not accelerator.is_main_process
         )
 
-        with torch.autocast("cuda", torch.float16):
-            for guidance_scale in sorted(args.val_guidance_scales):
-                pred_meshes = pipeline(
-                    images, 
-                    num_inference_steps=configs['val']['num_inference_steps'],
-                    num_tokens=configs['model']['vae']['num_tokens'],
-                    guidance_scale=guidance_scale, 
-                    generator=generator,
-                    # max_num_expanded_coords=configs['val']['max_num_expanded_coords'],
-                    use_flash_decoder=configs['val']['use_flash_decoder'],
-                ).meshes
+        medias_dictlist, metrics_dictlist = defaultdict(list), defaultdict(list)
 
-                # Save the generated meshes
-                if accelerator.is_main_process:
-                    local_eval_dir = os.path.join(eval_dir, f"{global_step:06d}", f"guidance_scale_{guidance_scale:.1f}")
-                    os.makedirs(local_eval_dir, exist_ok=True)
-                    rendered_images_list, rendered_normals_list = [], []
-                    # 1. save the gt image
-                    images[0].save(os.path.join(local_eval_dir, f"{val_step:04d}.png"))
-                    # 2. randomly save the generated meshes
-                    import random
-                    n = random.randint(0, N - 1)
-                    
-                    if pred_meshes[n] is None:
-                        # If the generated mesh is None (decoing error), use a dummy mesh
-                        pred_meshes[n] = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                    pred_meshes[n].export(os.path.join(local_eval_dir, f"{val_step:04d}_{n:02d}.glb"))
-                    # 3. render the generated mesh and save the rendered images
-                    
-                    rendered_images: List[Image.Image] = render_views_around_mesh(
-                        pred_meshes[n], 
-                        num_views=configs['val']['rendering']['num_views'],
-                        radius=configs['val']['rendering']['radius'],
+        val_dataloder, random_val_dataloader = yield_forever(dataloader), yield_forever(random_dataloader)
+        val_step = 0
+        while val_step < args.max_val_steps:
+
+            if val_step < args.max_val_steps // 2:
+                # fix the first half
+                batch = next(val_dataloder)
+            else:
+                # randomly sample the next batch
+                batch = next(random_val_dataloader)
+
+            images = batch["images"]
+            if len(images.shape) == 5:
+                images = images[0] # (1, N, H, W, 3) -> (N, H, W, 3)
+            images = [Image.fromarray(image) for image in images.cpu().numpy()]
+            surfaces = batch["surfaces"].cpu().numpy()
+            if len(surfaces.shape) == 4:
+                surfaces = surfaces[0] # (1, N, P, 6) -> (N, P, 6)
+
+            N = len(images)
+
+            val_progress_bar.set_postfix(
+                {"num_objects": N}
+            )
+
+            with torch.autocast("cuda", torch.float16):
+                for guidance_scale in sorted(args.val_guidance_scales):
+                    pred_meshes = pipeline(
+                        images, 
+                        num_inference_steps=configs['val']['num_inference_steps'],
+                        num_tokens=configs['model']['vae']['num_tokens'],
+                        guidance_scale=guidance_scale, 
+                        generator=generator,
+                        # max_num_expanded_coords=configs['val']['max_num_expanded_coords'],
+                        use_flash_decoder=configs['val']['use_flash_decoder'],
+                        activate_router=activate_router_mode,
+                    ).meshes
+
+                    # Save the generated meshes
+                    if accelerator.is_main_process:
+                        local_eval_dir = os.path.join(eval_dir, f"{global_step:06d}", run_prefix, f"guidance_scale_{guidance_scale:.1f}")
+                        os.makedirs(local_eval_dir, exist_ok=True)
+                        rendered_images_list, rendered_normals_list = [], []
+                        # 1. save the gt image
+                        images[0].save(os.path.join(local_eval_dir, f"{val_step:04d}.png"))
+                        # 2. randomly save the generated meshes
+                        import random
+                        n = random.randint(0, N - 1)
+                        
+                        if pred_meshes[n] is None:
+                            # If the generated mesh is None (decoing error), use a dummy mesh
+                            pred_meshes[n] = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
+                        pred_meshes[n].export(os.path.join(local_eval_dir, f"{val_step:04d}_{n:02d}.glb"))
+                        # 3. render the generated mesh and save the rendered images
+                        
+                        rendered_images: List[Image.Image] = render_views_around_mesh(
+                            pred_meshes[n], 
+                            num_views=configs['val']['rendering']['num_views'],
+                            radius=configs['val']['rendering']['radius'],
+                        )
+                        rendered_normals: List[Image.Image] = render_normal_views_around_mesh(
+                            pred_meshes[n],
+                            num_views=configs['val']['rendering']['num_views'],
+                            radius=configs['val']['rendering']['radius'],
+                        )
+                        export_renderings(
+                            rendered_images,
+                            os.path.join(local_eval_dir, f"{val_step:04d}.gif"),
+                            fps=configs['val']['rendering']['fps']
+                        )
+                        export_renderings(
+                            rendered_normals,
+                            os.path.join(local_eval_dir, f"{val_step:04d}_normals.gif"),
+                            fps=configs['val']['rendering']['fps']
+                        )
+                        rendered_images_list.append(rendered_images)
+                        rendered_normals_list.append(rendered_normals)
+
+                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/gt_image"] += [images[0]] # List[Image.Image] TODO: support batch size > 1
+                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_images"] += rendered_images_list # List[List[Image.Image]]
+                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_normals"] += rendered_normals_list # List[List[Image.Image]]
+
+                    ################################ Compute generation metrics ################################
+
+                    chamfer_distances, f_scores = [], []
+
+                    for n in range(N):
+                        gt_surface = surfaces[n]
+                        pred_mesh = pred_meshes[n]
+                        if pred_mesh is None:
+                            # If the generated mesh is None (decoing error), use a dummy mesh
+                            pred_mesh = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
+                        cd, f_score = compute_cd_and_f_score_in_training(
+                            gt_surface, pred_mesh,
+                            num_samples=configs['val']['metric']['cd_num_samples'],
+                            threshold=configs['val']['metric']['f1_score_threshold'],
+                            metric=configs['val']['metric']['cd_metric']
+                        )
+                        # avoid nan
+                        cd = configs['val']['metric']['default_cd'] if np.isnan(cd) else cd
+                        f_score = configs['val']['metric']['default_f1'] if np.isnan(f_score) else f_score
+                        chamfer_distances.append(cd)
+                        f_scores.append(f_score)
+
+
+                    chamfer_distances = torch.tensor(chamfer_distances, device=accelerator.device)
+                    f_scores = torch.tensor(f_scores, device=accelerator.device)
+
+                    metrics_dictlist[f"chamfer_distance_cfg{guidance_scale:.1f}"].append(chamfer_distances.mean())
+                    metrics_dictlist[f"f_score_cfg{guidance_scale:.1f}"].append(f_scores.mean())
+                
+            # Only log the last (biggest) cfg metrics in the progress bar
+            val_logs = {
+                "chamfer_distance": chamfer_distances.mean().item(),
+                "f_score": f_scores.mean().item(),
+            }
+            val_progress_bar.set_postfix(**val_logs)
+            logger.info(
+                f"Validation [{val_step:02d}/{args.max_val_steps:02d}] " +
+                f"chamfer_distance: {val_logs['chamfer_distance']:.4f}, f_score: {val_logs['f_score']:.4f}"
+            )
+            logger.info(
+                f"chamfer_distances: {[f'{x:.4f}' for x in chamfer_distances.tolist()]}"
+            )
+            logger.info(
+                f"f_scores: {[f'{x:.4f}' for x in f_scores.tolist()]}"
+            )
+            val_step += 1
+            val_progress_bar.update(1)
+
+        val_progress_bar.close()
+
+        if accelerator.is_main_process:
+            for key, value in medias_dictlist.items():
+                if isinstance(value[0], Image.Image): # assuming gt_image
+                    image_grid = make_grid_for_images_or_videos(
+                        value, 
+                        nrow=configs['val']['nrow'],
+                        return_type='pil', 
                     )
-                    rendered_normals: List[Image.Image] = render_normal_views_around_mesh(
-                        pred_meshes[n],
-                        num_views=configs['val']['rendering']['num_views'],
-                        radius=configs['val']['rendering']['radius'],
+                    image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{run_prefix}_{key.replace('/', '_')}.png"))
+                    wandb.log({f"validation/{run_prefix}/{key}": wandb.Image(image_grid)}, step=global_step)
+                else: # assuming pred_rendered_images or pred_rendered_normals
+                    image_grids = make_grid_for_images_or_videos(
+                        value, 
+                        nrow=configs['val']['nrow'],
+                        return_type='ndarray',
                     )
+                    wandb.log({
+                        f"validation/{run_prefix}/{key}": wandb.Video(
+                            image_grids, 
+                            fps=configs['val']['rendering']['fps'], 
+                            format="gif"
+                    )}, step=global_step)
+                    image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
                     export_renderings(
-                        rendered_images,
-                        os.path.join(local_eval_dir, f"{val_step:04d}.gif"),
-                        fps=configs['val']['rendering']['fps']
-                    )
-                    export_renderings(
-                        rendered_normals,
-                        os.path.join(local_eval_dir, f"{val_step:04d}_normals.gif"),
-                        fps=configs['val']['rendering']['fps']
-                    )
-                    rendered_images_list.append(rendered_images)
-                    rendered_normals_list.append(rendered_normals)
-
-                    medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/gt_image"] += [images[0]] # List[Image.Image] TODO: support batch size > 1
-                    medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_images"] += rendered_images_list # List[List[Image.Image]]
-                    medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_normals"] += rendered_normals_list # List[List[Image.Image]]
-
-                ################################ Compute generation metrics ################################
-
-                chamfer_distances, f_scores = [], []
-
-                for n in range(N):
-                    gt_surface = surfaces[n]
-                    pred_mesh = pred_meshes[n]
-                    if pred_mesh is None:
-                        # If the generated mesh is None (decoing error), use a dummy mesh
-                        pred_mesh = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                    cd, f_score = compute_cd_and_f_score_in_training(
-                        gt_surface, pred_mesh,
-                        num_samples=configs['val']['metric']['cd_num_samples'],
-                        threshold=configs['val']['metric']['f1_score_threshold'],
-                        metric=configs['val']['metric']['cd_metric']
-                    )
-                    # avoid nan
-                    cd = configs['val']['metric']['default_cd'] if np.isnan(cd) else cd
-                    f_score = configs['val']['metric']['default_f1'] if np.isnan(f_score) else f_score
-                    chamfer_distances.append(cd)
-                    f_scores.append(f_score)
-
-
-                chamfer_distances = torch.tensor(chamfer_distances, device=accelerator.device)
-                f_scores = torch.tensor(f_scores, device=accelerator.device)
-
-                metrics_dictlist[f"chamfer_distance_cfg{guidance_scale:.1f}"].append(chamfer_distances.mean())
-                metrics_dictlist[f"f_score_cfg{guidance_scale:.1f}"].append(f_scores.mean())
-            
-        # Only log the last (biggest) cfg metrics in the progress bar
-        val_logs = {
-            "chamfer_distance": chamfer_distances.mean().item(),
-            "f_score": f_scores.mean().item(),
-        }
-        val_progress_bar.set_postfix(**val_logs)
-        logger.info(
-            f"Validation [{val_step:02d}/{args.max_val_steps:02d}] " +
-            f"chamfer_distance: {val_logs['chamfer_distance']:.4f}, f_score: {val_logs['f_score']:.4f}"
-        )
-        logger.info(
-            f"chamfer_distances: {[f'{x:.4f}' for x in chamfer_distances.tolist()]}"
-        )
-        logger.info(
-            f"f_scores: {[f'{x:.4f}' for x in f_scores.tolist()]}"
-        )
-        val_step += 1
-        val_progress_bar.update(1)
-
-    val_progress_bar.close()
-
-    if accelerator.is_main_process:
-        for key, value in medias_dictlist.items():
-            if isinstance(value[0], Image.Image): # assuming gt_image
-                image_grid = make_grid_for_images_or_videos(
-                    value, 
-                    nrow=configs['val']['nrow'],
-                    return_type='pil', 
-                )
-                image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{key}.png"))
-                wandb.log({f"validation/{key}": wandb.Image(image_grid)}, step=global_step)
-            else: # assuming pred_rendered_images or pred_rendered_normals
-                image_grids = make_grid_for_images_or_videos(
-                    value, 
-                    nrow=configs['val']['nrow'],
-                    return_type='ndarray',
-                )
-                wandb.log({
-                    f"validation/{key}": wandb.Video(
                         image_grids, 
-                        fps=configs['val']['rendering']['fps'], 
-                        format="gif"
-                )}, step=global_step)
-                image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
-                export_renderings(
-                    image_grids, 
-                    os.path.join(eval_dir, f"{global_step:06d}", f"{key}.gif"), 
-                    fps=configs['val']['rendering']['fps']
-                )
+                        os.path.join(eval_dir, f"{global_step:06d}", f"{run_prefix}_{key.replace('/', '_')}.gif"), 
+                        fps=configs['val']['rendering']['fps']
+                    )
 
-        for k, v in metrics_dictlist.items():
-            wandb.log({f"validation/{k}": torch.tensor(v).mean().item()}, step=global_step)
+            for k, v in metrics_dictlist.items():
+                wandb.log({f"validation/{run_prefix}/{k}": torch.tensor(v).mean().item()}, step=global_step)
 
 if __name__ == "__main__":
     main()
     
     
 '''
-python /workspace/luoyajing/3d_pruning/TripoSG/scripts/train/train_triposg_mask.py \
+export NCCL_P2P_DISABLE=1 # for 4090
+export NCCL_IB_DISABLE=1 # for 4090
+export NCCL_SOCKET_NTHREADS=1 # for 4090
+
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml --use_ema --gradient_accumulation_steps 4 \
-        --output_dir output_partcrafter --tag scaleup_mp8_nt512_test 
-        
-        
-accelerate launch --multi_gpu --num_processes 2 \
-    /workspace/luoyajing/3d_pruning/TripoSG/scripts/train/train_triposg_mask_raw.py \
+        --output_dir output_mask --tag scaleup_mp8_nt512_mask 
+          
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5\
+    accelerate launch --multi_gpu --num_processes 6 \
+    TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml \
     --use_ema \
     --gradient_accumulation_steps 4 \
-    --output_dir output_partcrafter \
-    --tag scaleup_mp8_nt512_test 
+    --output_dir output_mask \
+    --tag scaleup_mp8_nt512_mask
 '''
