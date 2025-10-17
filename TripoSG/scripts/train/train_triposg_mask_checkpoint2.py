@@ -1,7 +1,8 @@
 '''
-with log_validation
+without log validation
+set all parameters to be require_grad = True
+10-17-15:00
 '''
-
 
 import warnings
 warnings.filterwarnings("ignore")  # ignore all warnings
@@ -620,7 +621,7 @@ def main():
         num_channels_latents = accelerator.unwrap_model(transformer).config.in_channels
         num_tokens = configs["model"]["vae"]["num_tokens"]
         shape = (batch_size, num_tokens, num_channels_latents)
-        print("shape:", shape) # shape: (n, 2048, 64)
+        # print("shape:", shape) # shape: (n, 2048, 64)
         
         latents_t = torch.randn(shape, device=accelerator.device)
         ori_latents_t = latents_t.clone()
@@ -649,7 +650,6 @@ def main():
                     noise_pred = noise_pred_uncond + args.guidance_scale * (
                         noise_pred_image - noise_pred_uncond
                     )
-
                     # compute the previous noisy sample x_t -> x_{t-1}
                     # print('noise_scheduler._step_index for ori_latents_t:', noise_scheduler._step_index)
                     current_step_index = noise_scheduler._step_index
@@ -693,11 +693,12 @@ def main():
                   
             if i % 3 != 0:
                 # print router, 大于0.5为1，小于0.5为0
-                router_sum = 0
-                # print("router:", accelerator.unwrap_model(transformer).routers)
-                for router in accelerator.unwrap_model(transformer).routers:
-                    router_sum += (router.prob > 0.5).sum().item()
-                print("router_sum:", router_sum)
+                if accelerator.is_main_process:
+                    router_sum = 0
+                    # print("router:", accelerator.unwrap_model(transformer).routers)
+                    for router in accelerator.unwrap_model(transformer).routers:
+                        router_sum += (router.prob > 0.5).sum().item()
+                    print("router_sum:", router_sum)
                 
                 data_loss = tF.mse_loss(ori_latents_t, latents_t)
                 loss = configs["train"]["data_loss_weight"] * data_loss + configs["train"]["l1_loss_weight"] * l1_loss
@@ -806,17 +807,6 @@ def main():
                     ema_transformer.store(transformer.parameters())
                     ema_transformer.copy_to(transformer.parameters())
 
-                transformer.eval()
-
-                log_validation(
-                    val_loader, random_val_loader,
-                    feature_extractor_dinov2, image_encoder_dinov2,
-                    vae, transformer,
-                    global_update_step, eval_dir,
-                    accelerator, logger,
-                    args, configs
-                )
-
                 if args.use_ema:
                     # Switch back to the original Transformer parameters
                     ema_transformer.restore(transformer.parameters())
@@ -824,213 +814,7 @@ def main():
                 torch.cuda.empty_cache()
                 gc.collect()
 
-@torch.no_grad()
-def log_validation(
-    dataloader, random_dataloader,
-    feature_extractor_dinov2, image_encoder_dinov2,
-    vae, transformer, 
-    global_step, eval_dir,
-    accelerator, logger,  
-    args, configs
-):  
 
-    val_noise_scheduler = RectifiedFlowScheduler.from_pretrained(
-        configs["model"]["pretrained_model_name_or_path"],
-        subfolder="scheduler"
-    )
-
-    pipeline = TripoSGPipeline(
-        vae=vae,
-        transformer=accelerator.unwrap_model(transformer),
-        scheduler=val_noise_scheduler,
-        feature_extractor_dinov2=feature_extractor_dinov2,
-        image_encoder_dinov2=image_encoder_dinov2,
-    )
-
-    pipeline.set_progress_bar_config(disable=True)
-    # pipeline.enable_xformers_memory_efficient_attention()
-
-    if args.seed >= 0:
-        generator = torch.Generator(device=accelerator.device).manual_seed(args.seed)
-    else:
-        generator = None
-        
-    for activate_router_mode in [True, False]:
-        run_prefix = "router_on" if activate_router_mode else "router_off"
-        logger.info(f"Running validation with router mode: {run_prefix}")
-
-        val_progress_bar = tqdm(
-            range(len(dataloader)) if args.max_val_steps is None else range(args.max_val_steps),
-            desc=f"Validation [{global_step:06d} / {run_prefix}]",
-            ncols=125,
-            disable=not accelerator.is_main_process
-        )
-
-        medias_dictlist, metrics_dictlist = defaultdict(list), defaultdict(list)
-
-        val_dataloder, random_val_dataloader = yield_forever(dataloader), yield_forever(random_dataloader)
-        val_step = 0
-        while val_step < args.max_val_steps:
-
-            if val_step < args.max_val_steps // 2:
-                # fix the first half
-                batch = next(val_dataloder)
-            else:
-                # randomly sample the next batch
-                batch = next(random_val_dataloader)
-
-            images = batch["images"]
-            if len(images.shape) == 5:
-                images = images[0] # (1, N, H, W, 3) -> (N, H, W, 3)
-            images = [Image.fromarray(image) for image in images.cpu().numpy()]
-            surfaces = batch["surfaces"].cpu().numpy()
-            if len(surfaces.shape) == 4:
-                surfaces = surfaces[0] # (1, N, P, 6) -> (N, P, 6)
-
-            N = len(images)
-
-            val_progress_bar.set_postfix(
-                {"num_objects": N}
-            )
-
-            with torch.autocast("cuda", torch.float16):
-                for guidance_scale in sorted(args.val_guidance_scales):
-                    pred_meshes = pipeline(
-                        images, 
-                        num_inference_steps=configs['val']['num_inference_steps'],
-                        num_tokens=configs['model']['vae']['num_tokens'],
-                        guidance_scale=guidance_scale, 
-                        generator=generator,
-                        # max_num_expanded_coords=configs['val']['max_num_expanded_coords'],
-                        use_flash_decoder=configs['val']['use_flash_decoder'],
-                        activate_router=activate_router_mode,
-                    ).meshes
-
-                    # Save the generated meshes
-                    if accelerator.is_main_process:
-                        local_eval_dir = os.path.join(eval_dir, f"{global_step:06d}", run_prefix, f"guidance_scale_{guidance_scale:.1f}")
-                        os.makedirs(local_eval_dir, exist_ok=True)
-                        rendered_images_list, rendered_normals_list = [], []
-                        # 1. save the gt image
-                        images[0].save(os.path.join(local_eval_dir, f"{val_step:04d}.png"))
-                        # 2. randomly save the generated meshes
-                        import random
-                        n = random.randint(0, N - 1)
-                        
-                        if pred_meshes[n] is None:
-                            # If the generated mesh is None (decoing error), use a dummy mesh
-                            pred_meshes[n] = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                        pred_meshes[n].export(os.path.join(local_eval_dir, f"{val_step:04d}_{n:02d}.glb"))
-                        # 3. render the generated mesh and save the rendered images
-                        
-                        rendered_images: List[Image.Image] = render_views_around_mesh(
-                            pred_meshes[n], 
-                            num_views=configs['val']['rendering']['num_views'],
-                            radius=configs['val']['rendering']['radius'],
-                        )
-                        rendered_normals: List[Image.Image] = render_normal_views_around_mesh(
-                            pred_meshes[n],
-                            num_views=configs['val']['rendering']['num_views'],
-                            radius=configs['val']['rendering']['radius'],
-                        )
-                        export_renderings(
-                            rendered_images,
-                            os.path.join(local_eval_dir, f"{val_step:04d}.gif"),
-                            fps=configs['val']['rendering']['fps']
-                        )
-                        export_renderings(
-                            rendered_normals,
-                            os.path.join(local_eval_dir, f"{val_step:04d}_normals.gif"),
-                            fps=configs['val']['rendering']['fps']
-                        )
-                        rendered_images_list.append(rendered_images)
-                        rendered_normals_list.append(rendered_normals)
-
-                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/gt_image"] += [images[0]] # List[Image.Image] TODO: support batch size > 1
-                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_images"] += rendered_images_list # List[List[Image.Image]]
-                        medias_dictlist[f"guidance_scale_{guidance_scale:.1f}/pred_rendered_normals"] += rendered_normals_list # List[List[Image.Image]]
-
-                    ################################ Compute generation metrics ################################
-
-                    chamfer_distances, f_scores = [], []
-
-                    for n in range(N):
-                        gt_surface = surfaces[n]
-                        pred_mesh = pred_meshes[n]
-                        if pred_mesh is None:
-                            # If the generated mesh is None (decoing error), use a dummy mesh
-                            pred_mesh = trimesh.Trimesh(vertices=[[0, 0, 0]], faces=[[0, 0, 0]])
-                        cd, f_score = compute_cd_and_f_score_in_training(
-                            gt_surface, pred_mesh,
-                            num_samples=configs['val']['metric']['cd_num_samples'],
-                            threshold=configs['val']['metric']['f1_score_threshold'],
-                            metric=configs['val']['metric']['cd_metric']
-                        )
-                        # avoid nan
-                        cd = configs['val']['metric']['default_cd'] if np.isnan(cd) else cd
-                        f_score = configs['val']['metric']['default_f1'] if np.isnan(f_score) else f_score
-                        chamfer_distances.append(cd)
-                        f_scores.append(f_score)
-
-
-                    chamfer_distances = torch.tensor(chamfer_distances, device=accelerator.device)
-                    f_scores = torch.tensor(f_scores, device=accelerator.device)
-
-                    metrics_dictlist[f"chamfer_distance_cfg{guidance_scale:.1f}"].append(chamfer_distances.mean())
-                    metrics_dictlist[f"f_score_cfg{guidance_scale:.1f}"].append(f_scores.mean())
-                
-            # Only log the last (biggest) cfg metrics in the progress bar
-            val_logs = {
-                "chamfer_distance": chamfer_distances.mean().item(),
-                "f_score": f_scores.mean().item(),
-            }
-            val_progress_bar.set_postfix(**val_logs)
-            logger.info(
-                f"Validation [{val_step:02d}/{args.max_val_steps:02d}] " +
-                f"chamfer_distance: {val_logs['chamfer_distance']:.4f}, f_score: {val_logs['f_score']:.4f}"
-            )
-            logger.info(
-                f"chamfer_distances: {[f'{x:.4f}' for x in chamfer_distances.tolist()]}"
-            )
-            logger.info(
-                f"f_scores: {[f'{x:.4f}' for x in f_scores.tolist()]}"
-            )
-            val_step += 1
-            val_progress_bar.update(1)
-
-        val_progress_bar.close()
-
-        if accelerator.is_main_process:
-            for key, value in medias_dictlist.items():
-                if isinstance(value[0], Image.Image): # assuming gt_image
-                    image_grid = make_grid_for_images_or_videos(
-                        value, 
-                        nrow=configs['val']['nrow'],
-                        return_type='pil', 
-                    )
-                    image_grid.save(os.path.join(eval_dir, f"{global_step:06d}", f"{run_prefix}_{key.replace('/', '_')}.png"))
-                    wandb.log({f"validation/{run_prefix}/{key}": wandb.Image(image_grid)}, step=global_step)
-                else: # assuming pred_rendered_images or pred_rendered_normals
-                    image_grids = make_grid_for_images_or_videos(
-                        value, 
-                        nrow=configs['val']['nrow'],
-                        return_type='ndarray',
-                    )
-                    wandb.log({
-                        f"validation/{run_prefix}/{key}": wandb.Video(
-                            image_grids, 
-                            fps=configs['val']['rendering']['fps'], 
-                            format="gif"
-                    )}, step=global_step)
-                    image_grids = [Image.fromarray(image_grid.transpose(1, 2, 0)) for image_grid in image_grids]
-                    export_renderings(
-                        image_grids, 
-                        os.path.join(eval_dir, f"{global_step:06d}", f"{run_prefix}_{key.replace('/', '_')}.gif"), 
-                        fps=configs['val']['rendering']['fps']
-                    )
-
-            for k, v in metrics_dictlist.items():
-                wandb.log({f"validation/{run_prefix}/{k}": torch.tensor(v).mean().item()}, step=global_step)
 
 if __name__ == "__main__":
     main()
@@ -1045,8 +829,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python TripoSG/scripts/train/train_triposg_mask
     --config configs/mp8_nt2048.yaml --use_ema --gradient_accumulation_steps 4 \
         --output_dir output_mask --tag scaleup_mp8_nt512_mask 
           
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5\
-    accelerate launch --multi_gpu --num_processes 6 \
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=0,1,2\
+    accelerate launch --multi_gpu --num_processes 3 \
     TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml \
     --use_ema \

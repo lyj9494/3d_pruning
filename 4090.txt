@@ -1,0 +1,4 @@
+ln -s /data1/luoyajing/PartCrafter/pretrained_weights /data1/luoyajing/3d_pruning/TripoSG
+
+rgb_001.png -> rgb_000_front.png 
+/workspace/luoyajing/3d_pruning -> /data1/luoyajing/3d_pruning

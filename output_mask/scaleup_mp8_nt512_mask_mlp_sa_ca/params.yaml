@@ -66,7 +66,7 @@ train:
     use_ema_warmup: true
     inv_gamma: 1.0
     power: 0.75
-  total_batch_size: 12
+  total_batch_size: 16
 val:
   batch_size_per_gpu: 1
   nrow: 4
@@ -92,7 +92,7 @@ args:
   resume_from_iter: None
   seed: '0'
   offline_wandb: 'False'
-  max_train_steps: '9'
+  max_train_steps: '63'
   max_val_steps: '4'
   num_workers: '32'
   pin_memory: 'False'

@@ -60,7 +60,7 @@ class ObjaverseMaskDataset(torch.utils.data.Dataset):
         
         # TODO: a debug here
         if self.training:
-            self.image_paths = self.image_paths[:100]
+            self.image_paths = self.image_paths[:1000]
         else:
             self.image_paths = self.image_paths[:1]
         '''

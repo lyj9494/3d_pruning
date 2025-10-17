@@ -415,6 +415,10 @@ def main():
         )
     timestep_map = noise_scheduler.timesteps.tolist()
 
+    # TODO: for debug
+    
+    transformer.requires_grad_(False)
+    
     transformer.eval()
     transformer.add_router(
         args.num_inference_steps, 
@@ -823,8 +827,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5 python TripoSG/scripts/train/train_triposg_mask
     --config configs/mp8_nt2048.yaml --use_ema --gradient_accumulation_steps 4 \
         --output_dir output_mask --tag scaleup_mp8_nt512_mask 
           
-LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=0,1,2\
-    accelerate launch --multi_gpu --num_processes 3 \
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=4,5,6,7\
+    accelerate launch --multi_gpu --num_processes 4 \
     TripoSG/scripts/train/train_triposg_mask.py \
     --config configs/mp8_nt2048.yaml \
     --use_ema \
