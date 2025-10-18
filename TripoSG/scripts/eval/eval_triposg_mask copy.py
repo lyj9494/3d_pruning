@@ -81,8 +81,6 @@ def run_evaluation(
     metrics_dictlist = defaultdict(list)
     
     for i, batch in enumerate(tqdm(dataloader, desc="Evaluating")):
-        pipe.scheduler._step_index = None # Reset scheduler state
-        
         images = batch["images"]
         surfaces = batch["surfaces"]
         

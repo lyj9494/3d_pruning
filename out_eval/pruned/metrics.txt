@@ -1,0 +1,3 @@
+Mode: pruned
+Average Chamfer Distance: 0.1592
+Average F-score: 0.6946

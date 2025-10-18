@@ -20,7 +20,7 @@ from transformers import (
 from TripoSG.triposg.utils.inference_utils import hierarchical_extract_geometry, flash_extract_geometry
 
 from ..models.autoencoders import TripoSGVAEModel
-from ..models.transformers import TripoSGDiTModel
+from ..models.transformers.triposg_transformer_dynamic import TripoSGDiTModelDyn
 from .pipeline_triposg_output import TripoSGPipelineOutput
 from .pipeline_utils import TransformerDiffusionMixin
 
@@ -101,7 +101,7 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
     def __init__(
         self,   
         vae: TripoSGVAEModel,
-        transformer: TripoSGDiTModel,
+        transformer: TripoSGDiTModelDyn,
         scheduler: FlowMatchEulerDiscreteScheduler,
         image_encoder_dinov2: Dinov2Model,
         feature_extractor_dinov2: BitImageProcessor,
@@ -115,6 +115,7 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
             image_encoder_dinov2=image_encoder_dinov2,
             feature_extractor_dinov2=feature_extractor_dinov2,
         )
+        
 
     @property
     def guidance_scale(self):
@@ -195,6 +196,7 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
         flash_octree_depth: int = 9,
         use_flash_decoder: bool = True,
         return_dict: bool = True,
+        ori: bool = False,
     ):
         # 1. Define call parameters
         self._guidance_scale = guidance_scale
@@ -260,6 +262,7 @@ class TripoSGPipeline(DiffusionPipeline, TransformerDiffusionMixin):
                     encoder_hidden_states=image_embeds,
                     attention_kwargs=attention_kwargs,
                     return_dict=False,
+                    ori=ori,
                 )[0]
 
                 # perform guidance

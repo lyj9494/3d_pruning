@@ -835,4 +835,12 @@ LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=4,5,6,7
     --gradient_accumulation_steps 4 \
     --output_dir output_mask \
     --tag scaleup_mp8_nt512_mask
+    
+    
+LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6 CUDA_VISIBLE_DEVICES=3,4,5,6,7  \
+    accelerate launch --multi_gpu --num_processes 5   \
+        TripoSG/scripts/train/train_triposg_mask.py  \
+            --config configs/mp8_nt2048.yaml  \
+                --use_ema --gradient_accumulation_steps 4   \
+                    --output_dir output_mask     --tag scaleup_mp8_nt512_mask_data_10000_lr_1e-4
 '''

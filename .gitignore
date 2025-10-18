@@ -25,3 +25,7 @@ output
 output_partcrafter
 TripoSG/pretrained_weights
 output_mask
+output_triposg_mask
+out_test
+evaluation_results
+diffusers

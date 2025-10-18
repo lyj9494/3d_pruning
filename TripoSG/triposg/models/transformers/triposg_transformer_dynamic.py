@@ -383,7 +383,7 @@ class DiTBlock(nn.Module):
         return hidden_states, (self_attn_output, cross_attn_output, ff_output)
 
 
-class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
+class TripoSGDiTModelDyn(ModelMixin, ConfigMixin, PeftAdapterMixin):
     """
     TripoSG: Diffusion model with a Transformer backbone.
 
@@ -492,8 +492,12 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
         self.gradient_checkpointing = False
 
         self.reset()
+    
+    def reset(self, start_timestep=50):
+        self.cur_timestep = start_timestep - 1
+        self.reuse_feature = [None] * self.num_layers
 
-    def load_ranking(self, path, num_steps, timestep_map, thres, mlp_mode=True, self_attn_mode=True, cross_attn_mode=True):
+    def load_ranking(self, path, num_steps, timestep_map, thres, mlp_mode=True, self_attn_mode=True, cross_attn_mode=True, log_file=None):
         from TripoSG.triposg.models.transformers.triposg_transformer_mask import Router, STE
         
         self.mlp_mode = mlp_mode
@@ -521,7 +525,8 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
                 routers.load_state_dict(ckpt)
             self.timestep_map =  {timestep: i for i, timestep in enumerate(timestep_map)}
 
-            print("routers", routers)
+            # for router in routers:
+            #    print(router.prob)
             
             act_layer, total_layer = 0, 0
             act_self_att, act_cross_att, act_mlp = 0, 0, 0
@@ -532,8 +537,9 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
                     total_layer += num_total_choices
                     act_layer += len(self.rank[idx])
                     # log
-                    logger.info(f"Timestep {idx}: Not Reuse: {self.rank[idx].squeeze()}")
-                    # print(f"Timestep {idx}: Not Reuse: {self.rank[idx].squeeze()}")
+                    # save to log file
+                    with open(log_file, "a") as f:
+                        f.write(f"Timestep {idx}: Not Reuse: {self.rank[idx].squeeze()}\n")
 
                     if len(self.rank[idx]) > 0:
                         component_idx = 0
@@ -757,10 +763,12 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
 
         _, N, _ = hidden_states.shape
 
+        # 2. Time Embedding
         temb = self.time_embed(timestep).to(hidden_states.dtype)
         temb = self.time_proj(temb)
         temb = temb.unsqueeze(dim=1)  # unsqueeze to concat with hidden_states
 
+        # 3. Process hidden_states
         hidden_states = self.proj_in(hidden_states)
 
         # N + 1 token
@@ -834,7 +842,7 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
                     ckpt_kwargs: Dict[str, Any] = (
                         {"use_reentrant": False} if is_torch_version(">=", "1.11.0") else {}
                     )
-                    hidden_states = torch.utils.checkpoint.checkpoint(
+                    hidden_states, reuse_feature = torch.utils.checkpoint.checkpoint(
                         create_custom_forward(block),
                         hidden_states,
                         encoder_hidden_states,
@@ -846,7 +854,7 @@ class TripoSGDiTModel(ModelMixin, ConfigMixin, PeftAdapterMixin):
                         **ckpt_kwargs,
                     )
                 else:
-                    hidden_states = block(
+                    hidden_states, reuse_feature = block(
                         hidden_states,
                         encoder_hidden_states=encoder_hidden_states,
                         encoder_hidden_states_2=encoder_hidden_states_2,
